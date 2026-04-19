@@ -988,49 +988,120 @@ Visibility:       Public      ← обов'язково Public для GitHub Pag
 
 <script>
 // ════════════════════════════════════════════════
-//  API (поки null — локальний режим)
-//  Замінити на URL Apps Script після деплою:
-//  const API_URL = "https://script.google.com/macros/s/.../exec";
+//  API — підключення до Google Apps Script
+//  Замініть URL нижче на свій після деплою
 // ════════════════════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbwltohTnKdNF0gqXzgZDQkiMtO9Dpij-9pyygZwxQigCSLZ2UN-zwBiZAtxEE3HEmbZ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbziW5P49aiwwln3UEMKQZaIQrfdhEy4UFdvA1CdAfv-2dSa71jQZ9QiIWSt486wPdLA/exec"; // ← вставте URL виду https://script.google.com/macros/s/.../exec
+
+async function apiGet(action) {
+  if(!API_URL) return null;
+  try {
+    const r = await fetch(`${API_URL}?action=${action}`);
+    return await r.json();
+  } catch(e) { console.error('apiGet', action, e); return null; }
+}
+
+async function apiPost(payload) {
+  if(!API_URL) return null;
+  try {
+    const r = await fetch(API_URL, {
+      method:'POST', redirect:'follow',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify(payload),
+    });
+    return await r.json();
+  } catch(e) { console.error('apiPost', e); return null; }
+}
+
+function safeJson(str) { try { return JSON.parse(str||'[]'); } catch { return []; } }
+
+async function loadFromSheets() {
+  if(!API_URL) { localInit(); return; }
+  try {
+    const [rawOrders, rawArchive, rawVt, rawDir] = await Promise.all([
+      apiGet('getOrders'), apiGet('getArchive'),
+      apiGet('getVtProducts'), apiGet('getDirItems'),
+    ]);
+
+    if(rawVt)  DB.vtProducts = rawVt;
+    if(rawDir) DB.directory  = {
+      fabric:   rawDir.fabric   || [],
+      thread:   rawDir.thread   || [],
+      hardware: rawDir.hardware || [],
+      branding: rawDir.branding || [],
+    };
+
+    const mapOrder = (o, closed) => ({
+      id:        parseInt(o['№'])||0,
+      no:        parseInt(o['№'])||0,
+      created:   String(o['Дата']    ||''),
+      name:      String(o['Назва']   ||''),
+      deadline:  String(o['Дедлайн'] ||''),
+      tier:      o['Tier']==='ТАК',
+      status:    closed ? 'closed' : normalizeStatus(o['Статус']),
+      workStart: String(o['Початок'] ||''),
+      workEnd:   String(o['Кінець']  ||''),
+      products:  safeJson(o['Вироби']),
+      closed,
+    });
+
+    DB.orders = [
+      ...(rawOrders  ||[]).map(o=>mapOrder(o,false)),
+      ...(rawArchive ||[]).map(o=>mapOrder(o,true)),
+    ];
+    nextOrderNo = DB.orders.length ? Math.max(...DB.orders.map(o=>o.no||0))+1 : 1;
+
+    renderStats(); renderOrders(); renderCalendar();
+    renderWorkshop('rozkroi'); renderWorkshop('tsekh');
+    renderArchive(); renderVt(); renderDir();
+  } catch(err) {
+    console.error('loadFromSheets:', err);
+    localInit();
+  }
+}
+
+async function saveOrderToSheets(order) {
+  await apiPost({
+    action:'addOrder',
+    created: order.created, name: order.name, deadline: order.deadline,
+    tier: order.tier, workStart: order.workStart||'', workEnd: order.workEnd||'',
+    productsJson: JSON.stringify(order.products),
+  });
+}
+
+async function syncField(no, field, value) {
+  await apiPost({ action:'updateOrder', no, field, value });
+}
+
+async function syncClose(no) {
+  await apiPost({ action:'closeOrder', no });
+}
 
 // ════════════════════════════════════════════════
-//  ДАНІ ВИРОБІВ З EXCEL
-// ════════════════════════════════════════════════
-const VT_PRODUCTS = [{"id":1,"name":"Рашгард","code":"RG001","variants":[{"color":"Молочний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"RG001MINEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"},{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"RG001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":2,"name":"Шорти","code":"RT001","variants":[{"color":"чорний","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185968. Низ: 11027","barcode":"RT001BNSPWL","brandCode":"-","brandMat":"-","sex":"Жіноча"},{"color":"Основа: сірий; Низ: білий.","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185971; Низ: 11053","barcode":"RT001LGWNSPWL","brandCode":"-","brandMat":"-","sex":"Жіноча"},{"color":"Основа: сірий; Низ: чорний.","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185971; Низ: 11027","barcode":"RT001LGBNSPML","brandCode":"-","brandMat":"-","sex":"Чоловіча"},{"color":"чорний","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185968. Низ: 11027","barcode":"RT001BNSPML","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":3,"name":"Лосини","code":"L004","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"L004BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":4,"name":"Велосипедки","code":"CS002","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"CS002BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":5,"name":"Вітрівка","code":"W003","variants":[{"color":"Основа: сіро-блакитна; Вставки: білий","fabric":"Основа: Віва плащова; Вставки: Мікрофірба спорт Carvico","fabricArt":"Основа: 50301; Вставки: 18245","barcode":"W003002GBWPNEWL","brandCode":"002","brandMat":"світловідбивна плівка","sex":"Жіноча"},{"color":"Чорний","fabric":"Основа: Віва плащова; Вставки: Трикотаж мікромасло.","fabricArt":"Основа: 50301; Вставки: 11027","barcode":"W003002BPNEWL","brandCode":"002","brandMat":"світловідбивна плівка","sex":"Жіноча"},{"color":"Основа: сіро-блакитна; Вставки: білий","fabric":"Основа: Віва плащова; Вставки: Мікрофірба спорт Carvico","fabricArt":"Основа: 50301; Вставки: 18245","barcode":"W003002GBWPNEML","brandCode":"002","brandMat":"світловідбивна плівка","sex":"Чоловіча"},{"color":"Чорний","fabric":"Основа: Віва плащова; Вставки: Трикотаж мікромасло.","fabricArt":"Основа: 50301; Вставки: 11027","barcode":"W003002BPNEML","brandCode":"002","brandMat":"світловідбивна плівка","sex":"Чоловіча"}]},{"id":6,"name":"Реглан","code":"RR001","variants":[{"color":"Чорний","fabric":"Основа: ТРИКОТАЖ СПОРТ ВІСКОЗА; Вставки: Трикотаж мікромасло.","fabricArt":"Основа: 144; вставки: 11027","barcode":"RR001001BVPWL","brandCode":"001","brandMat":"світловідбивна плівка","sex":"Жіноча"},{"color":"Основа: світло-блакитний; Вставки: білий","fabric":"Основа: ТРИКОТАЖ СПОРТ ВІСКОЗА; Вставки: Мікрофірба спорт Carvico","fabricArt":"Основа: 144; вставки: 18245","barcode":"RR001001LBUWVPML","brandCode":"001","brandMat":"світловідбивна плівка","sex":"Жіноча"}]},{"id":7,"name":"Лонгслів","code":"LS004","variants":[{"color":"Оливковий","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"LS003004LOPWL","brandCode":"004","brandMat":"біла плівка","sex":"Жіноча"}]},{"id":8,"name":"Топ","code":"T002","variants":[{"color":"чорний","fabric":"Основа: ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ; Підкладка: Трикотаж мікромасло.","fabricArt":"Основа: 201 Вставки: 11027","barcode":"T002001BNEWL","brandCode":"001","brandMat":"дтф","sex":"Жіноча"}]},{"id":9,"name":"Лонгслів","code":"LS005","variants":[{"color":"Білий","fabric":"Футер стрейч двохнитка","fabricArt":"178330","barcode":"LS005WCEWL","brandCode":"сердечко","brandMat":"дтф","sex":"жіноча"}]},{"id":10,"name":"Майка","code":"RS003","variants":[{"color":"чорний","fabric":"Мікро лакоста","fabricArt":"83645","barcode":"RS003005BPWL","brandCode":"005","brandMat":"світловідбивна плівка","sex":"жіноча"},{"color":"Салатовий","fabric":"Мікро лакоста","fabricArt":"184514","barcode":"RS003005BLPWL","brandCode":"005","brandMat":"світловідбивна плівка","sex":"жіноча"}]},{"id":11,"name":"Шорти","code":"RT002","variants":[{"color":"Чорний","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185968. Низ: 11027","barcode":"RT002BNSPWL","brandCode":"008","brandMat":"Плівка біла + світловідбивна","sex":"жіноча"},{"color":"Основа: сірий; Низ: білий.","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185971; Низ: 11053","barcode":"RT002LGBNSPWL","brandCode":"008","brandMat":"Плівка біла + світловідбивна","sex":"жіноча"}]},{"id":12,"name":"Лонгслів","code":"RG002","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ВІСКОЗА","fabricArt":"144","barcode":"RG002BPWL","brandCode":"005","brandMat":"плівка біла","sex":"жіноча"}]},{"id":13,"name":"Топ","code":"T003","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"T003BNEEWL","brandCode":"001","brandMat":"біла плівка","sex":"жіноча"}]},{"id":14,"name":"Лосини","code":"L005","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"L005BNEEWL","brandCode":"001","brandMat":"біла плівка","sex":"жіноча"}]},{"id":15,"name":"Топ","code":"T004","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"T004004BNPWL","brandCode":"004","brandMat":"біла плівка","sex":"жіноча"}]},{"id":16,"name":"Майка спортивна","code":"TS001","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"TS001004BPWL","brandCode":"004","brandMat":"біла плівка","sex":"жіноча"},{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"TS001004BPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"},{"color":"Білий","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"TS001004WPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"}]},{"id":17,"name":"Шорти","code":"RT003","variants":[{"color":"Чорний","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185968. Низ: 11027","barcode":"RT003BNSPWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":18,"name":"Лосини","code":"L006","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"L006BNEWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":19,"name":"Футболка базовий шар","code":"FB001","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"FB001BNEWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":20,"name":"Шорти","code":"RT004","variants":[{"color":"Чорний","fabric":"Плащова стрейч спорт","fabricArt":"185968","barcode":"RT004BNSPWL","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":21,"name":"Лонгслів спортивний","code":"LSP001","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"LSP001BNEWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":22,"name":"Спідниця-шорти","code":"SKS001","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"SKS001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":23,"name":"Топ","code":"T005","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"T005BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":24,"name":"Футболка для бігу","code":"FR001","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"FR001004BPWL","brandCode":"004","brandMat":"біла плівка","sex":"жіноча"},{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"FR001004BPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"}]},{"id":25,"name":"Топ","code":"T006","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"T006004BPWL","brandCode":"004","brandMat":"біла плівка","sex":"Жіноча"}]},{"id":26,"name":"Спортивні штани джогери","code":"JP001","variants":[{"color":"Чорний","fabric":"Двонитка","fabricArt":"280","barcode":"JP001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"},{"color":"Чорний","fabric":"Двонитка","fabricArt":"280","barcode":"JP001BNEML","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":27,"name":"Рашгард","code":"RG003","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"RG003BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":28,"name":"Футболка спортивна","code":"FS001","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"FS001004BPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"}]},{"id":29,"name":"Жилетка","code":"JL001","variants":[{"color":"Чорний","fabric":"Основа: Плащова; Підкладка: Флісова","fabricArt":"Основа: 50301; Підкладка: FL01","barcode":"JL001BNEML","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":30,"name":"Анорак + сумочка","code":"AN001","variants":[{"color":"Чорний","fabric":"Плащова стрейч спорт","fabricArt":"185968","barcode":"AN001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":31,"name":"Флісова кофта","code":"FL001","variants":[{"color":"Чорний","fabric":"Фліс","fabricArt":"FL001","barcode":"FL001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":32,"name":"Футболка casual","code":"FC001","variants":[{"color":"Чорний","fabric":"Футер стрейч двохнитка","fabricArt":"178330","barcode":"FC001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":33,"name":"Худі zip","code":"HZ001","variants":[{"color":"Чорний","fabric":"Футер стрейч двохнитка","fabricArt":"178330","barcode":"HZ001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":34,"name":"Світшот casual","code":"SW001","variants":[{"color":"Чорний","fabric":"Футер стрейч двохнитка","fabricArt":"178330","barcode":"SW001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":35,"name":"майка","code":"M001","variants":[{"color":"чорний","fabric":"Мікро лакоста","fabricArt":"83645","barcode":"M001BPWL","brandCode":"005","brandMat":"світловідбивна плівка","sex":"жіноча"}]},{"id":36,"name":"футболка","code":"F001","variants":[{"color":"чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"F001004BPWL","brandCode":"004","brandMat":"біла плівка","sex":"жіноча"}]},{"id":37,"name":"шорти","code":"SH001","variants":[{"color":"чорний","fabric":"Плащова стрейч спорт","fabricArt":"185968","barcode":"SH001BNSPWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":38,"name":"Топ","code":"T007","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"T007BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":39,"name":"Рашгард","code":"RG004","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"RG004BNEWL","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":40,"name":"Футболка базовий шар","code":"FB002","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"FB002004BPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"}]},{"id":41,"name":"Лосини","code":"L007","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"L007BNEWL","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]}];
-
-// ════════════════════════════════════════════════
-//  DB — демо-дані
+//  DB — динамічні дані (завантажуються з Sheets)
 // ════════════════════════════════════════════════
 let DB = {
   orders: [
     { id:1, no:1, created:'2026-03-01', name:'Вітрівка Carvico весна', deadline:'2026-04-20',
       tier:true, status:'rozkroi', workStart:'2026-04-10', workEnd:'2026-04-19',
-      products:[{vtId:5, name:'Вітрівка', code:'W003', variantIdx:0,
-        sizes:[{sex:'Жіноча',sz:'S',qty:20,done:0},{sex:'Жіноча',sz:'M',qty:30,done:5},{sex:'Чоловіча',sz:'M',qty:25,done:0}]}]
+      products:[{vtId:5, name:'Вітрівка', code:'W003', variantIdx:0, prodStage:'rozkroi',
+        sizes:[{sex:'Жіноча',sz:'S',qty:20,done:0,cut:0},{sex:'Жіноча',sz:'M',qty:30,done:0,cut:0},{sex:'Чоловіча',sz:'M',qty:25,done:0,cut:0}]}]
     },
     { id:2, no:2, created:'2026-03-10', name:'Рашгард жіночий партія 2', deadline:'2026-04-12',
       tier:false, status:'shveika', workStart:'2026-04-05', workEnd:'2026-04-15',
-      products:[{vtId:1, name:'Рашгард', code:'RG001', variantIdx:1,
-        sizes:[{sex:'Жіноча',sz:'S',qty:40,done:15},{sex:'Жіноча',sz:'M',qty:40,done:20}]}]
+      products:[{vtId:1, name:'Рашгард', code:'RG001', variantIdx:1, prodStage:'shveika',
+        sizes:[{sex:'Жіноча',sz:'S',qty:40,done:15,cut:40},{sex:'Жіноча',sz:'M',qty:40,done:20,cut:40}]}]
     },
     { id:3, no:3, created:'2026-03-20', name:'Лосини чорні базові', deadline:'2026-05-10',
       tier:true, status:'new', workStart:'', workEnd:'',
-      products:[{vtId:3, name:'Лосини', code:'L004', variantIdx:0,
-        sizes:[{sex:'Жіноча',sz:'S',qty:30,done:0},{sex:'Жіноча',sz:'M',qty:40,done:0},{sex:'Жіноча',sz:'L',qty:20,done:0}]}]
-    },
-    { id:4, no:4, created:'2026-02-15', name:'Майка спортивна весна', deadline:'2026-03-20',
-      tier:false, status:'done', workStart:'2026-02-25', workEnd:'2026-03-15',
-      products:[{vtId:16, name:'Майка спортивна', code:'TS001', variantIdx:0,
-        sizes:[{sex:'Жіноча',sz:'S',qty:50,done:50},{sex:'Жіноча',sz:'M',qty:50,done:50}]}]
+      products:[{vtId:3, name:'Лосини', code:'L004', variantIdx:0, prodStage:'rozkroi',
+        sizes:[{sex:'Жіноча',sz:'S',qty:30,done:0,cut:0},{sex:'Жіноча',sz:'M',qty:40,done:0,cut:0}]}]
     },
   ],
-  directory: {
-    fabric:   [{id:1,name:'ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ',code:'FAB-01',color:'Чорний',mat:'80% поліестер 20% спандекс'}],
-    thread:   [{id:1,name:'Нитка № 40',code:'TH-01',color:'Чорний',mat:'Поліестер'}],
-    hardware: [{id:1,name:'Блискавка YKK',code:'HW-01',color:'Чорний',mat:'Метал'}],
-    branding: [{id:1,name:'Плівка світловідбивна',code:'BR-01',color:'—',mat:'Термоплівка'}],
-  }
+  // Вироби TIER — завантажуються з листа "ВИРОБИ TIER"
+  vtProducts: [],
+  // Довідник — завантажується з листа "ДОВІДНИК"
+  directory: { fabric:[], thread:[], hardware:[], branding:[] }
 };
 let nextOrderId = 5;
 let nextOrderNo = 5;
@@ -1049,6 +1120,13 @@ const fmtDFull = d => { if(!d) return '—'; const dt = new Date(d+'T00:00:00');
 const isOver = o => !['done','closed'].includes(o.status) && o.deadline && o.deadline < todayStr();
 const SLABELS = {new:'🔴 Не почато',rozkroi:'🟠 Розкрій',shveika:'🟡 Цех',done:'🟢 Готово',closed:'⚫ Закрито'};
 const SCLASS  = {new:'sb-new',rozkroi:'sb-rozkroi',shveika:'sb-shveika',done:'sb-done',closed:'sb-closed'};
+// Зворотній маппінг: українська назва → внутрішній код
+const SLABELS_REV = {};
+Object.entries(SLABELS).forEach(([k,v]) => { SLABELS_REV[v.replace(/^\S+\s/,'')] = k; SLABELS_REV[v] = k; });
+SLABELS_REV['Не почато'] = 'new'; SLABELS_REV['Розкрій'] = 'rozkroi';
+SLABELS_REV['Цех'] = 'shveika'; SLABELS_REV['Готово'] = 'done'; SLABELS_REV['Закрито'] = 'closed';
+// Нормалізація статусу з Sheets (може бути укр. текст або внутрішній код)
+function normalizeStatus(s) { return SLABELS_REV[s] || SLABELS_REV[String(s).trim()] || s || 'new'; }
 const sBadge  = s => { const over = s==='overdue'; const key = over?'new':s; return `<span class="sbadge ${SCLASS[key]||'sb-new'}">${over?'🔴 Протерм.':SLABELS[s]||s}</span>`; };
 
 // Clock
@@ -1146,8 +1224,8 @@ function addProdBlock() {
   div.className = 'prod-block';
   div.id = id;
 
-  // unique names from VT_PRODUCTS
-  const names = [...new Set(VT_PRODUCTS.map(p=>p.name))].sort();
+  // unique names from DB.vtProducts
+  const names = [...new Set(DB.vtProducts.map(p=>p.name))].sort();
   const nameOpts = names.map(n=>`<option value="${n}">${n}</option>`).join('');
 
   div.innerHTML = `
@@ -1176,7 +1254,7 @@ function addProdBlock() {
 
 function onPbName(id) {
   const name = document.getElementById(id+'-name').value;
-  const prods = VT_PRODUCTS.filter(p=>p.name===name);
+  const prods = DB.vtProducts.filter(p=>p.name===name);
   const varSel = document.getElementById(id+'-var');
   varSel.innerHTML = '<option value="">— Варіант —</option>';
   prods.forEach(p => {
@@ -1226,7 +1304,7 @@ function submitOrder() {
     if(!nameSel||!nameSel.value){err.textContent='❗ Обери виріб';return;}
     if(!varSel||!varSel.value){err.textContent='❗ Обери варіант (колір/стать)';return;}
     const [vtId, vi] = varSel.value.split(':');
-    const vt = VT_PRODUCTS.find(p=>p.id===parseInt(vtId));
+    const vt = DB.vtProducts.find(p=>p.id===parseInt(vtId));
     const sizes = [];
     block.querySelectorAll('.size-row').forEach(row=>{
       const sels = row.querySelectorAll('select');
@@ -1238,12 +1316,14 @@ function submitOrder() {
     products.push({vtId:parseInt(vtId), name:vt.name, code:vt.code, variantIdx:parseInt(vi), sizes});
   }
   err.textContent='';
-  DB.orders.unshift({
+  const newOrder = {
     id:nextOrderId++, no:nextOrderNo++,
     created:todayStr(), name, deadline,
     tier: document.getElementById('ch-tier').checked,
     status:'new', workStart:'', workEnd:'', products
-  });
+  };
+  DB.orders.unshift(newOrder);
+  saveOrderToSheets(newOrder); // зберегти в Sheets
   resetForm(); toggleCreate();
   renderStats(); renderOrders(); renderCalendar();
 }
@@ -1367,7 +1447,7 @@ function buildOrderRow(o) {
 }
 
 function buildProdDetail(p) {
-  const vt = VT_PRODUCTS.find(x=>x.id===p.vtId);
+  const vt = DB.vtProducts.find(x=>x.id===p.vtId);
   const v = vt ? vt.variants[p.variantIdx] : null;
   const sizes = p.sizes.map(s=>{
     const frac = `${s.done}/${s.qty}`;
@@ -1397,17 +1477,19 @@ function updOrder(id, field, val) {
   if(!o) return;
   const wasOpen = document.getElementById('oc'+id)?.classList.contains('open');
   o[field]=val;
+  syncField(o.no, field, val); // зберегти в Sheets
   renderStats(); renderOrders(); renderCalendar();
-  // restore open state
-  if(wasOpen) {
-    const el = document.getElementById('oc'+id);
-    if(el) el.classList.add('open');
-  }
+  if(wasOpen) { const el=document.getElementById('oc'+id); if(el) el.classList.add('open'); }
 }
 function updStatus(id, val) {
   const o = DB.orders.find(x=>x.id===id);
   if(!o) return;
   o.status = val;
+  if(val==='rozkroi') o.products.forEach(p=>{ if(!p.prodStage) p.prodStage='rozkroi'; });
+  // Зберегти статус і вироби в Sheets
+  syncField(o.no, 'status', SLABELS[val]||val);
+  syncField(o.no, 'productsJson', JSON.stringify(o.products));
+  if(val==='closed') syncClose(o.no);
   renderStats(); renderOrders(); renderCalendar();
   if(val==='rozkroi') renderWorkshop('rozkroi');
   if(val==='shveika') renderWorkshop('tsekh');
@@ -1485,15 +1567,30 @@ function calClick(ids) {
 //  WORKSHOP (Розкрій / Цех)
 // ════════════════════════════════════════════════
 function renderWorkshop(page) {
-  const status = page==='rozkroi' ? 'rozkroi' : 'shveika';
   const nextStatus = page==='rozkroi' ? 'shveika' : 'done';
   const nextLabel  = page==='rozkroi' ? '→ Цех' : '→ Готово';
   const btnCls     = page==='rozkroi' ? 'btn-orange' : 'btn-green';
+  const targetStage = page==='rozkroi' ? 'rozkroi' : 'shveika';
 
+  // Розкрій: замовлення зі статусом rozkroi що мають хоча б 1 виріб ще не в Цеху
+  // Цех: замовлення (rozkroi або shveika) що мають хоча б 1 виріб зі стадією shveika
   const list = DB.orders
-    .filter(o=>o.status===status)
-    .sort((a,b)=>{ // sort by workStart
-      if(!a.workStart&&!b.workStart) return 0;
+    .filter(o => {
+      if(['done','closed'].includes(o.status)) return false;
+      if(page==='rozkroi') {
+        // показувати якщо статус розкрій І є хоч 1 розмір без cut
+        return o.status === 'rozkroi' &&
+          o.products.some(p => p.sizes.some(s => (s.cut||0) < s.qty));
+      }
+      if(page==='tsekh') {
+        // показувати якщо є хоч 1 розмір з cut > 0 і done < qty
+        return ['rozkroi','shveika'].includes(o.status) &&
+          o.products.some(p => p.sizes.some(s => (s.cut||0) > 0 && (s.done||0) < s.qty));
+      }
+      return false;
+    })
+    .sort((a,b)=>{
+      if(!a.workStart && !b.workStart) return 0;
       if(!a.workStart) return 1;
       if(!b.workStart) return -1;
       return a.workStart.localeCompare(b.workStart);
@@ -1503,7 +1600,12 @@ function renderWorkshop(page) {
   if(!list.length){container.innerHTML='<div class="empty-state">Немає замовлень у цьому статусі</div>';return;}
 
   container.innerHTML = list.map(o=>{
-    const over = isOver(o);
+    // показуємо тільки релевантні вироби для цієї сторінки
+    const relevantProds = o.products.filter(p =>
+      page==='rozkroi'
+        ? p.sizes.some(s => (s.cut||0) < s.qty)       // є нерозкроєні
+        : p.sizes.some(s => (s.cut||0) > 0 && (s.done||0) < s.qty) // є розкроєні, але не всі зшиті
+    );
     return `<div class="ws-order-card" id="ws${page}${o.id}">
       <div class="ws-order-head" onclick="document.getElementById('ws${page}${o.id}').classList.toggle('open')">
         <div class="ws-order-no">${String(o.no).padStart(3,'0')}</div>
@@ -1512,14 +1614,14 @@ function renderWorkshop(page) {
         <div class="ws-order-chevron">▾</div>
       </div>
       <div class="ws-order-body">
-        ${o.products.map(p=>buildWsProd(o, p, nextStatus, nextLabel, btnCls, page)).join('')}
+        ${relevantProds.map(p=>buildWsProd(o, p, nextStatus, nextLabel, btnCls, page)).join('')}
       </div>
     </div>`;
   }).join('');
 }
 
 function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
-  const vt = VT_PRODUCTS.find(x=>x.id===p.vtId);
+  const vt = DB.vtProducts.find(x=>x.id===p.vtId);
   const v  = vt ? vt.variants[p.variantIdx] : null;
   const metaId = `meta-${o.id}-${p.code}`;
 
@@ -1581,28 +1683,28 @@ function moveSize(orderId, prodCode, sizeIdx, nextStatus, page, qtyVal) {
 
   const qty = parseInt(qtyVal)||0;
 
-  if(nextStatus==='done') {
-    // Цех → Готово: рахуємо пошиті штуки
-    if(qty > 0) {
-      s.done = Math.min(s.qty, (s.done||0) + qty);
-    } else {
-      s.done = s.qty;
-    }
-    // якщо всі розміри всіх виробів пошиті → замовлення готове
-    const allDone = o.products.every(pr => pr.sizes.every(sz => (sz.done||0) >= sz.qty));
-    if(allDone) o.status = 'done';
+  if(nextStatus==='shveika') {
+    // Розкрій → будь-яка кількість розкроєного відразу відкриває виріб в Цеху
+    s.cut = Math.min(s.qty, (s.cut||0) + (qty > 0 ? qty : s.qty - (s.cut||0)));
+    if(s.cut > 0) p.prodStage = 'shveika';
+    // Замовлення відображається в Цеху якщо хоч 1 виріб має prodStage='shveika'
+    const anyShveika = o.products.some(pr => pr.prodStage === 'shveika');
+    if(anyShveika && o.status === 'rozkroi') o.status = 'rozkroi'; // залишається в обох
 
-  } else if(nextStatus==='shveika') {
-    // Розкрій → Цех: рахуємо розкроєні штуки (поле cut)
-    if(qty > 0) {
-      s.cut = Math.min(s.qty, (s.cut||0) + qty);
-    } else {
-      s.cut = s.qty;
-    }
-    // якщо всі розміри всіх виробів розкроєні → замовлення переходить в цех
-    const allCut = o.products.every(pr => pr.sizes.every(sz => (sz.cut||0) >= sz.qty));
-    if(allCut) o.status = 'shveika';
+  } else if(nextStatus==='done') {
+    // Цех → будь-яка кількість зшитого рахується
+    s.done = Math.min(s.qty, (s.done||0) + (qty > 0 ? qty : s.qty - (s.done||0)));
+    // Виріб "готовий" якщо всі розміри зшиті
+    const allSizesDone = p.sizes.every(sz => (sz.done||0) >= sz.qty);
+    if(allSizesDone) p.prodStage = 'done';
+    // Замовлення "готове" якщо ВСІ вироби готові
+    const allDone = o.products.every(pr => pr.prodStage === 'done');
+    if(allDone) o.status = 'done';
   }
+
+  // Синхронізувати products JSON в Sheets
+  syncField(o.no, 'productsJson', JSON.stringify(o.products));
+  if(o.status === 'done') syncField(o.no, 'status', SLABELS['done']);
 
   renderStats(); renderOrders(); renderCalendar();
   renderWorkshop(page);
@@ -1664,7 +1766,7 @@ function renderArchive() {
 // ════════════════════════════════════════════════
 //  ВИРОБИ TIER
 // ════════════════════════════════════════════════
-let vtProducts = [...VT_PRODUCTS];
+// vtProducts тепер є DB.vtProducts
 
 function addVtItem() {
   const name = document.getElementById('vt-name').value.trim();
@@ -1672,18 +1774,20 @@ function addVtItem() {
   const err  = document.getElementById('vt-err');
   if(!name||!code){err.textContent='❗ Обов\'язкові поля';return;}
   err.textContent='';
-  vtProducts.push({
-    id:nextVtId++, name, code,
+  const newItem = {
+    id: Date.now(), name, code,
     variants:[{
-      sex:   document.getElementById('vt-sex').value,
-      fabric:document.getElementById('vt-fabric').value,
+      sex:      document.getElementById('vt-sex').value,
+      fabric:   document.getElementById('vt-fabric').value,
       fabricArt:document.getElementById('vt-art').value,
-      color: document.getElementById('vt-color').value,
-      barcode:document.getElementById('vt-barcode').value,
+      color:    document.getElementById('vt-color').value,
+      barcode:  document.getElementById('vt-barcode').value,
       brandCode:document.getElementById('vt-brand-code').value,
       brandMat: document.getElementById('vt-brand-mat').value,
     }]
-  });
+  };
+  DB.vtProducts.push(newItem);
+  apiPost({ action:'addVtProduct', item: newItem }); // зберегти в Sheets
   ['vt-name','vt-code','vt-sex','vt-fabric','vt-art','vt-color','vt-barcode','vt-brand-code','vt-brand-mat']
     .forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   renderVt();
@@ -1691,9 +1795,9 @@ function addVtItem() {
 
 function renderVt() {
   const el = document.getElementById('vt-list');
-  document.getElementById('vt-count').textContent = vtProducts.length + ' виробів';
-  if(!vtProducts.length){el.innerHTML='<div class="empty-state">Немає виробів</div>';return;}
-  el.innerHTML = vtProducts.map(p=>`
+  document.getElementById('vt-count').textContent = DB.vtProducts.length + ' виробів';
+  if(!DB.vtProducts.length){el.innerHTML='<div class="empty-state">Немає виробів</div>';return;}
+  el.innerHTML = DB.vtProducts.map(p=>`
     <div class="vt-item" id="vti${p.id}">
       <div class="vt-head" onclick="document.getElementById('vti${p.id}').classList.toggle('open')">
         <div class="vt-name">${p.name}</div>
@@ -1724,12 +1828,12 @@ function addDirItem() {
   const err  = document.getElementById('dir-err');
   if(!name||!code){err.textContent='❗ Назва і код';return;}
   err.textContent='';
-  const list = DB.directory[type];
-  list.push({id:(list.length?Math.max(...list.map(i=>i.id)):0)+1,
-    name, code,
+  const newItem = {id:Date.now(), name, code,
     color: document.getElementById('dir-color').value,
     mat:   document.getElementById('dir-mat').value,
-  });
+  };
+  DB.directory[type].push(newItem);
+  apiPost({ action:'addDirItem', type, item: newItem }); // зберегти в Sheets
   ['dir-name','dir-code','dir-color','dir-mat'].forEach(id=>{document.getElementById(id).value='';});
   renderDir();
 }
@@ -1759,13 +1863,15 @@ function renderDir() {
 }
 
 // ════════════════════════════════════════════════
-//  INIT
+//  INIT — автовизначення режиму
 // ════════════════════════════════════════════════
-renderStats();
-renderOrders();
-renderCalendar();
-renderVt();
-renderDir();
+function localInit() {
+  renderStats(); renderOrders(); renderCalendar();
+  renderVt(); renderDir();
+}
+
+// Завантажуємо дані — якщо API_URL вказано, беремо з Sheets, інакше демо
+loadFromSheets();
 </script>
 </body>
 </html>
