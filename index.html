@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TIER.MFG — Система управління виробництвом</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+/* ══════════════════════════════════════════════
+   ЗМІННІ — Підлаштування під екран
+   ══════════════════════════════════════════════ */
+:root {
+  /* ── ПРОПОРЦІЯ ЕКРАНУ: ширина колонки календаря (права частина)
+        Змінити одне значення тут — і вся розмітка підлаштується.
+        Рекомендовано: 280px (15"), 260px (14") ── */
+  --cal-width: 290px;
+
+  /* ── КОЛЬОРИ ── */
+  --bg:        #0e0f11;
+  --surface:   #16181c;
+  --surface2:  #1e2127;
+  --border:    #2a2d35;
+  --border2:   #363a45;
+  --text:      #e8eaf0;
+  --text-muted:#7a7f8e;
+  --text-dim:  #4a4f5c;
+  --accent:    #4f8ef7;
+  --accent-dim:#1e3a6e;
+  --green:     #2ecc71;
+  --green-bg:  #0d2b1a;
+  --yellow:    #f5c518;
+  --yellow-bg: #2a2208;
+  --red:       #e74c3c;
+  --red-bg:    #2b0d0d;
+  --orange:    #f97316;
+  --orange-bg: #2a1505;
+  --gray-bg:   #1c1e24;
+
+  /* ── ШРИФТИ ── */
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+
+/* ── RESET ── */
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ══════════════════════════════════════════════
+   ШАПКА — TIER.MFG (з першої версії)
+   ══════════════════════════════════════════════ */
+.header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:52px;
+  border-bottom:1px solid var(--border);background:var(--surface);
+  position:sticky;top:0;z-index:200;
+}
+.logo{font-family:var(--mono);font-size:17px;font-weight:600;letter-spacing:.12em}
+.logo span{color:var(--accent)}
+.header-meta{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.08em}
+
+/* ── ВКЛАДКИ ── */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 28px;overflow-x:auto}
+.tab{
+  padding:11px 18px;font-family:var(--mono);font-size:11px;letter-spacing:.07em;
+  color:var(--text-muted);cursor:pointer;border:none;background:none;
+  border-bottom:2px solid transparent;text-transform:uppercase;white-space:nowrap;
+  transition:all .15s;
+}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ══════════════════════════════════════════════
+   LAYOUT СТОРІНОК
+   ══════════════════════════════════════════════ */
+.page{display:none;padding:20px 28px;max-width:1600px}
+.page.active{display:block}
+
+/* Основний layout: ліво + календар праворуч */
+.orders-layout{
+  display:grid;
+  grid-template-columns: 1fr var(--cal-width);
+  gap:20px;align-items:start;
+}
+
+/* ══════════════════════════════════════════════
+   ДАШБОРД (зі стилем першої версії)
+   ══════════════════════════════════════════════ */
+.stats-bar{
+  display:flex;gap:20px;margin-bottom:16px;
+  padding:14px 20px;background:var(--surface);
+  border:1px solid var(--border);border-radius:6px;flex-wrap:wrap;
+}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat-val{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1}
+.stat-val .tier-cnt{font-size:13px;color:var(--text-dim);font-weight:400;margin-left:2px}
+.stat-val.c-all{color:var(--text)}
+.stat-val.c-new{color:var(--red)}
+.stat-val.c-work{color:var(--yellow)}
+.stat-val.c-done{color:var(--green)}
+.stat-val.c-over{color:var(--red)}
+.stat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--text-dim);text-transform:uppercase}
+.stat-div{width:1px;background:var(--border)}
+
+/* ══════════════════════════════════════════════
+   ФІЛЬТРИ
+   ══════════════════════════════════════════════ */
+.filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filter-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase}
+.fbtn{
+  padding:4px 11px;border-radius:3px;border:1px solid var(--border);
+  background:transparent;color:var(--text-muted);
+  font-family:var(--mono);font-size:10px;letter-spacing:.05em;cursor:pointer;transition:all .12s;
+}
+.fbtn:hover,.fbtn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.fbtn.f-new.active{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.fbtn.f-roz.active{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
+.fbtn.f-shv.active{border-color:var(--yellow);color:var(--yellow);background:var(--yellow-bg)}
+.fbtn.f-done.active{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+.fbtn.f-over.active{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.fbtn.f-closed.active{border-color:var(--text-dim);color:var(--text-dim);background:var(--surface2)}
+
+/* ══════════════════════════════════════════════
+   ФОРМА НОВОГО ЗАМОВЛЕННЯ (collapsible)
+   ══════════════════════════════════════════════ */
+.create-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;border:1px solid var(--border);border-radius:6px 6px 0 0;
+  background:var(--surface);cursor:pointer;margin-bottom:0;
+  transition:background .15s;
+}
+.create-header:hover{background:var(--surface2)}
+.create-header.closed{border-radius:6px;margin-bottom:14px}
+.create-header-label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.create-icon{font-size:16px;color:var(--accent);transition:transform .25s;font-family:var(--mono)}
+.create-header.open .create-icon{transform:rotate(45deg)}
+
+.create-body{
+  max-height:0;overflow:hidden;
+  transition:max-height .35s cubic-bezier(.4,0,.2,1);
+  border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;
+  background:var(--surface);margin-bottom:14px;
+}
+.create-body.open{max-height:2000px}
+.create-inner{padding:18px}
+
+/* ── ПОЛЯ ── */
+.form-row{display:grid;gap:10px;margin-bottom:12px}
+.fg{display:flex;flex-direction:column;gap:5px}
+label.lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+input[type=text],input[type=date],input[type=number],select,textarea{
+  padding:7px 10px;background:var(--bg);
+  border:1px solid var(--border2);border-radius:4px;
+  color:var(--text);font-family:var(--mono);font-size:12px;
+  outline:none;transition:border-color .15s;width:100%;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select option{background:var(--bg)}
+.input-auto{background:var(--surface2);color:var(--text-muted);cursor:default}
+/* ── Іконка дати — біла ── */
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.55;cursor:pointer}
+input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
+.hint{font-size:10px;color:var(--text-dim);font-family:var(--mono)}
+
+/* ── ЧЕКБОКС TIER ── */
+.tier-check{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.tier-check input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
+.tier-check span{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.06em}
+
+/* ── PRODUCT BLOCKS ── */
+.prod-section-lbl{
+  font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--text-dim);padding:10px 0 8px;border-top:1px solid var(--border);margin-top:4px;
+}
+.prod-block{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;padding:12px;margin-bottom:8px;
+}
+.prod-block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.prod-block-num{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
+.btn-rm{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:3px;transition:color .15s}
+.btn-rm:hover{color:var(--red)}
+
+/* ── SIZE ROWS ── */
+.size-row-wrap{display:flex;flex-direction:column;gap:5px;margin:8px 0}
+.size-row{display:grid;grid-template-columns:140px 80px 90px 28px;gap:6px;align-items:center}
+.btn-add-row,.btn-add-prod{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 11px;border-radius:3px;border:1px dashed var(--border2);
+  background:transparent;color:var(--text-dim);font-family:var(--mono);font-size:10px;
+  cursor:pointer;transition:all .12s;margin-top:4px;
+}
+.btn-add-row:hover,.btn-add-prod:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── КНОПКИ ── */
+.btn{padding:7px 15px;border-radius:4px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:#3a7de8;border-color:#3a7de8;color:#fff}
+.btn-sm{padding:4px 10px;font-size:10px}
+.btn-orange{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn-orange:hover{background:#e8650a}
+.btn-green{background:var(--green);border-color:var(--green);color:#000}
+.btn-green:hover{background:#25b864}
+.btn-print{border-color:var(--text-dim);color:var(--text-muted)}
+.btn-print:hover{border-color:var(--text);color:var(--text)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.err{color:var(--red);font-family:var(--mono);font-size:10px}
+
+/* ══════════════════════════════════════════════
+   СПИСОК ЗАМОВЛЕНЬ (стиль з першої версії)
+   ══════════════════════════════════════════════ */
+.orders-wrap{border:1px solid var(--border);border-radius:6px;overflow:hidden}
+
+.orders-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+.orders-table th{
+  padding:9px 12px;text-align:left;font-size:9px;letter-spacing:.12em;
+  color:var(--text-dim);text-transform:uppercase;font-weight:500;
+  background:var(--surface2);border-bottom:1px solid var(--border2);white-space:nowrap;
+}
+.orders-table td{padding:9px 12px;vertical-align:middle}
+/* tbody замість tr — валідний HTML для групування рядків */
+tbody.order-card{border-bottom:1px solid var(--border)}
+tbody.order-card:last-child{border-bottom:none}
+tbody.order-card.s-new     .order-head td{border-left:2px solid var(--red)}
+tbody.order-card.s-rozkroi .order-head td{border-left:2px solid var(--orange)}
+tbody.order-card.s-shveika .order-head td{border-left:2px solid var(--yellow)}
+tbody.order-card.s-done    .order-head td{border-left:2px solid var(--green)}
+tbody.order-card.s-closed  .order-head td{border-left:2px solid var(--text-dim)}
+tbody.order-card.is-overdue .order-head{background:rgba(231,68,60,.04)}
+tbody.order-card.is-overdue .dl-cell{color:var(--red)!important}
+tbody.order-card.s-done .order-head td:not(.nodim){opacity:.6}
+tbody.order-card.is-tier{background:rgba(79,142,247,.025)}
+.order-head{cursor:pointer;background:var(--surface)}
+.order-head:hover td{background:var(--surface2)}
+
+.order-no{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:2px 6px;border-radius:3px;border:1px solid var(--border);font-family:var(--mono)}
+.tag-tier{display:inline-block;padding:1px 6px;border-radius:2px;font-size:9px;letter-spacing:.08em;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(79,142,247,.3);margin-left:5px}
+.date-group{display:flex;flex-direction:column;gap:2px}
+.date-lbl{font-size:9px;color:var(--text-dim);letter-spacing:.08em}
+.date-val{font-size:11px;color:var(--text-muted)}
+.date-val.warn{color:var(--red)}
+.date-sep{font-size:10px;color:var(--text-dim);margin:0 2px}
+.warn-icon{font-size:11px;margin-left:3px}
+
+/* status badge */
+.sbadge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:3px;font-size:10px;font-family:var(--mono);white-space:nowrap}
+.sb-new    {background:var(--red-bg);color:var(--red)}
+.sb-rozkroi{background:var(--orange-bg);color:var(--orange)}
+.sb-shveika{background:var(--yellow-bg);color:var(--yellow)}
+.sb-done   {background:var(--green-bg);color:var(--green)}
+.sb-closed {background:var(--surface2);color:var(--text-dim)}
+.sb-overdue{background:var(--red-bg);color:var(--red)}
+
+.chevron{color:var(--text-dim);font-size:11px;transition:transform .2s;text-align:center}
+tbody.order-card.open .chevron{transform:rotate(180deg)}
+
+/* detail row */
+.order-detail{display:none;background:var(--surface2)}
+tbody.order-card.open .order-detail{display:table-row}
+.detail-cell{padding:14px 16px 16px;border-left:1px solid var(--border)}
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.detail-field{display:flex;flex-direction:column;gap:4px}
+.detail-field .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)}
+.detail-field .val{font-size:12px;color:var(--text)}
+
+.prod-detail-list{margin-top:12px}
+.pdl-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.pdl-item{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:10px 12px;margin-bottom:6px}
+.pdl-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pdl-name{font-size:12px;font-weight:500;color:var(--text)}
+.pdl-code{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:1px 6px;border-radius:2px;border:1px solid var(--border)}
+.size-chips{display:flex;flex-wrap:wrap;gap:5px}
+.schip{display:flex;align-items:center;gap:4px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:11px}
+.schip .sz{color:var(--accent);font-weight:500}
+.schip .sq{color:var(--text-muted)}
+.schip .done-qty{color:var(--green)}
+
+/* status select in detail */
+.status-sel{background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 8px;cursor:pointer;outline:none}
+
+/* ══════════════════════════════════════════════
+   КАЛЕНДАР
+   ══════════════════════════════════════════════ */
+.cal-wrap{position:sticky;top:72px}
+.cal-month{margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.cal-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.cal-name{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)}
+.cal-grid{padding:8px 10px 10px}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.cal-dow span{text-align:center;font-size:9px;color:var(--text-dim);padding:2px}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cday{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:9px;color:var(--text-muted);border-radius:3px;
+  transition:background .1s;position:relative;
+}
+.cday.empty{opacity:0}
+.cday.today{color:var(--accent);font-weight:600}
+.cday.today::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--accent)}
+.cday.has-ev{cursor:pointer}
+.cday.ev-tier{background:rgba(79,142,247,.2);color:var(--text)}
+.cday.ev-sh{background:rgba(46,204,113,.15);color:var(--text)}
+.cday.ev-both{background:linear-gradient(135deg,rgba(79,142,247,.25) 50%,rgba(46,204,113,.2) 50%);color:var(--text)}
+.cday.has-ev:hover{opacity:.8;filter:brightness(1.2)}
+.cal-legend{display:flex;gap:12px;padding:6px 10px;border-top:1px solid var(--border);background:var(--surface2)}
+.cal-leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--text-dim)}
+.cal-leg-dot{width:8px;height:8px;border-radius:2px}
+.leg-tier{background:rgba(79,142,247,.3)}
+.leg-sh{background:rgba(46,204,113,.25)}
+
+/* ══════════════════════════════════════════════
+   СТОРІНКИ РОЗКРІЙ / ЦЕХ
+   ══════════════════════════════════════════════ */
+.ws-section-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;
+}
+.ws-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted)}
+
+.ws-order-card{
+  border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden;
+}
+.ws-order-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 16px;background:var(--surface);cursor:pointer;transition:background .15s;
+}
+.ws-order-head:hover{background:var(--surface2)}
+.ws-order-no{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
+.ws-order-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);margin:0 10px;flex:1}
+.ws-order-start{font-family:var(--mono);font-size:10px;color:var(--text-muted)}
+.ws-order-chevron{font-size:11px;color:var(--text-dim);transition:transform .2s;flex-shrink:0}
+.ws-order-card.open .ws-order-chevron{transform:rotate(180deg)}
+
+.ws-order-body{display:none;border-top:1px solid var(--border);background:var(--surface2)}
+.ws-order-card.open .ws-order-body{display:block}
+
+/* product item inside workshop */
+.ws-prod-item{
+  border-bottom:1px solid var(--border);padding:12px 16px;
+}
+.ws-prod-item:last-child{border-bottom:none}
+.ws-prod-title{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ws-prod-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text)}
+.ws-prod-code{font-size:10px;color:var(--text-dim);background:var(--surface);padding:1px 6px;border-radius:2px;border:1px solid var(--border)}
+
+/* prod meta (спойлер) */
+.ws-meta-toggle{font-family:var(--mono);font-size:10px;color:var(--text-dim);cursor:pointer;user-select:none;transition:color .15s}
+.ws-meta-toggle:hover{color:var(--accent)}
+.ws-meta{display:none;margin:8px 0;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:4px}
+.ws-meta.open{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.ws-meta-field{display:flex;flex-direction:column;gap:3px}
+.ws-meta-lbl{font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase}
+.ws-meta-val{font-family:var(--mono);font-size:11px;color:var(--text-muted)}
+
+/* size rows in workshop */
+.ws-size-table{width:100%;border-collapse:collapse;margin-top:8px;font-family:var(--mono);font-size:11px}
+.ws-size-table th{padding:5px 8px;text-align:left;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border)}
+.ws-size-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+.ws-size-table tr:last-child td{border-bottom:none}
+.done-fraction{font-family:var(--mono);font-size:12px}
+.done-fraction.partial{color:var(--yellow)}
+.done-fraction.full{color:var(--green)}
+.ws-done-input{width:60px;padding:3px 6px;font-size:11px}
+.ws-actions-row{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+/* PRINT */
+@media print{
+  .header,.tabs,.filter-bar,.create-header,.create-body,.cal-wrap,
+  .btn-print,.ws-section-head .row,.no-print,
+  .chevron,.ws-order-chevron{display:none!important}
+  body{background:#fff!important;color:#000!important;font-size:11px}
+  .ws-order-body{display:block!important}
+  .ws-order-head{background:#f5f5f5!important;color:#000!important}
+  .ws-prod-item{border-color:#ccc!important}
+  .ws-meta{display:grid!important;background:#fafafa!important;border-color:#ddd!important}
+  .ws-meta-val,.ws-order-name,.ws-prod-name,.ws-meta-lbl,.ws-prod-code,
+  .ws-order-no,.ws-order-start,.done-fraction,.ws-size-table td,.ws-size-table th{color:#000!important}
+  .ws-size-table{border:1px solid #ccc}
+  .ws-size-table th,.ws-size-table td{border-color:#ccc!important}
+  .ws-order-card{border-color:#ccc!important;break-inside:avoid}
+  .ws-prod-title{margin-bottom:6px}
+  @page{margin:15mm}
+}
+
+/* ══════════════════════════════════════════════
+   ВИРОБИ TIER
+   ══════════════════════════════════════════════ */
+.vt-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:7px;overflow:hidden}
+.vt-head{display:flex;align-items:center;padding:10px 14px;cursor:pointer;transition:background .15s;gap:10px}
+.vt-head:hover{background:var(--surface2)}
+.vt-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);flex:1}
+.vt-code{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:2px 7px;border-radius:3px;border:1px solid var(--border)}
+.vt-cnt{font-size:10px;color:var(--text-dim);margin-right:4px}
+.vt-body{display:none;border-top:1px solid var(--border);background:var(--surface2);padding:12px 14px}
+.vt-item.open .vt-body{display:block}
+.vt-item.open .vt-head-chev{transform:rotate(180deg)}
+.vt-head-chev{font-size:11px;color:var(--text-dim);transition:transform .2s}
+.variant-row{
+  background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  margin-bottom:6px;padding:8px 10px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;
+}
+.vr-field{display:flex;flex-direction:column;gap:2px}
+.vr-lbl{font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono)}
+.vr-val{font-size:11px;color:var(--text-muted);font-family:var(--mono)}
+.vr-val.barcode{font-size:10px}
+
+/* ══════════════════════════════════════════════
+   ДОВІДНИК
+   ══════════════════════════════════════════════ */
+.dir-section{margin-bottom:24px}
+.dir-title{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.dir-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+.dir-table th{padding:8px 12px;text-align:left;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);background:var(--surface2);border-bottom:1px solid var(--border2)}
+.dir-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text-muted)}
+.dir-table tr:last-child td{border-bottom:none}
+.dir-table tr:hover td{background:var(--surface2)}
+.dir-wrap{border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:16px}
+
+/* tag chips for dir */
+.dtag{display:inline-block;padding:1px 7px;border-radius:2px;font-size:9px;border:1px solid;margin:1px}
+.dtag-fabric  {background:rgba(46,204,113,.08);color:var(--green);border-color:rgba(46,204,113,.2)}
+.dtag-thread  {background:rgba(79,142,247,.08);color:var(--accent);border-color:rgba(79,142,247,.2)}
+.dtag-hardware{background:rgba(245,197,24,.08);color:var(--yellow);border-color:rgba(245,197,24,.2)}
+.dtag-branding{background:rgba(249,115,22,.08);color:var(--orange);border-color:rgba(249,115,22,.2)}
+
+/* ══════════════════════════════════════════════
+   АРХІВ
+   ══════════════════════════════════════════════ */
+.arch-month{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+.arch-month-head{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;background:var(--surface);cursor:pointer;transition:background .15s}
+.arch-month-head:hover{background:var(--surface2)}
+.arch-month-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text)}
+.arch-month-cnt{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.arch-month-body{display:none;border-top:1px solid var(--border)}
+.arch-month.open .arch-month-body{display:block}
+.arch-chev{font-size:11px;color:var(--text-dim);transition:transform .2s}
+.arch-month.open .arch-chev{transform:rotate(180deg)}
+
+/* archive order (has its own spoiler) */
+.arch-order{border-bottom:1px solid var(--border)}
+.arch-order:last-child{border-bottom:none}
+.arch-order-head{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;background:var(--surface);transition:background .15s}
+.arch-order-head:hover{background:var(--surface2)}
+.arch-order-no{font-family:var(--mono);font-size:10px;color:var(--text-dim);width:70px}
+.arch-order-name{flex:1;font-size:12px;color:var(--text);font-family:var(--mono)}
+.arch-order-dl{font-size:11px;color:var(--text-dim);font-family:var(--mono)}
+.arch-order-body{display:none;background:var(--surface2);padding:12px 16px;border-top:1px solid var(--border)}
+.arch-order.open .arch-order-body{display:block}
+.arch-order-chev{font-size:10px;color:var(--text-dim);transition:transform .2s}
+.arch-order.open .arch-order-chev{transform:rotate(180deg)}
+
+/* ══════════════════════════════════════════════
+   ІНСТРУКЦІЯ
+   ══════════════════════════════════════════════ */
+.guide-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px 22px;margin-bottom:16px}
+.guide-title{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--accent);text-transform:uppercase;margin-bottom:12px}
+.guide-list{list-style:none}
+.guide-list li{padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:10px;align-items:flex-start;color:var(--text-muted)}
+.guide-list li:last-child{border-bottom:none}
+.guide-list li::before{content:'→';color:var(--accent);font-family:var(--mono);flex-shrink:0}
+.formula-block{background:var(--bg);border:1px solid var(--border2);border-radius:4px;padding:10px 14px;margin:10px 0;font-family:var(--mono);font-size:11px;color:#8ec4f7;white-space:pre-wrap;word-break:break-all;line-height:1.7}
+
+/* ── MISC ── */
+.empty-state{text-align:center;padding:40px;color:var(--text-dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted)}
+.info-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--text-dim);padding:3px 9px;border:1px solid var(--border);border-radius:20px}
+</style>
+</head>
+<body>
+
+<!-- ШАПКА -->
+<div class="header">
+  <div class="logo">TIER<span>.</span>MFG</div>
+  <div class="header-meta" id="hdr-clock">СИСТЕМА УПРАВЛІННЯ ВИРОБНИЦТВОМ · v2.0</div>
+</div>
+
+<!-- ВКЛАДКИ -->
+<div class="tabs">
+  <button class="tab active" onclick="goTab('orders',this)">📋 ЗАМОВЛЕННЯ</button>
+  <button class="tab" onclick="goTab('rozkroi',this)">✂️ РОЗКРІЙ</button>
+  <button class="tab" onclick="goTab('tsekh',this)">🧵 ЦЕХ</button>
+  <button class="tab" onclick="goTab('archive',this)">📦 АРХІВ</button>
+  <button class="tab" onclick="goTab('vt',this)">🧠 ВИРОБИ TIER</button>
+  <button class="tab" onclick="goTab('directory',this)">📚 ДОВІДНИК</button>
+  <button class="tab" onclick="goTab('guide',this)">📄 ІНСТРУКЦІЯ</button>
+</div>
+
+<!-- ══════════════ ЗАМОВЛЕННЯ ══════════════ -->
+<div class="page active" id="page-orders">
+  <div class="orders-layout">
+    <!-- ЛІВА ЧАСТИНА -->
+    <div>
+      <!-- Дашборд -->
+      <div class="stats-bar" id="stats-bar"></div>
+
+      <!-- Фільтри -->
+      <div class="filter-bar">
+        <span class="filter-lbl">Фільтр:</span>
+        <button class="fbtn active" onclick="setFilter('all',this)">Всі</button>
+        <button class="fbtn f-new"    onclick="setFilter('new',this)">🔴 Не почато</button>
+        <button class="fbtn f-roz"    onclick="setFilter('rozkroi',this)">🟠 Розкрій</button>
+        <button class="fbtn f-shv"    onclick="setFilter('shveika',this)">🟡 Цех</button>
+        <button class="fbtn f-done"   onclick="setFilter('done',this)">🟢 Готово</button>
+        <button class="fbtn f-over"   onclick="setFilter('overdue',this)">⚠️ Протерміновані</button>
+        <button class="fbtn f-closed" onclick="setFilter('closed',this)">⚫ Закриті</button>
+      </div>
+
+      <!-- Форма нового замовлення -->
+      <div class="create-header closed" id="createHdr" onclick="toggleCreate()">
+        <div class="create-header-label">➕ Створити нове замовлення</div>
+        <div class="create-icon">+</div>
+      </div>
+      <div class="create-body" id="createBody">
+        <div class="create-inner">
+          <div class="form-row" style="grid-template-columns:80px 1fr 1fr 1fr">
+            <div class="fg"><label class="lbl">№</label><input type="text" id="f-no" class="input-auto" readonly></div>
+            <div class="fg"><label class="lbl">Дата</label><input type="text" id="f-date" class="input-auto" readonly></div>
+            <div class="fg"><label class="lbl">Назва замовлення</label><input type="text" id="f-name" placeholder="Назва..."></div>
+            <div class="fg"><label class="lbl">Дедлайн</label><input type="date" id="f-deadline"></div>
+          </div>
+          <div class="form-row" style="grid-template-columns:auto 1fr">
+            <div class="fg" style="justify-content:flex-end;padding-bottom:2px">
+              <label class="lbl">Мітка</label>
+              <label class="tier-check"><input type="checkbox" id="ch-tier"> <span>⬡ TIER</span></label>
+            </div>
+            <div></div>
+          </div>
+
+          <div class="prod-section-lbl">Вироби замовлення</div>
+          <div id="prod-container"></div>
+          <div class="row" style="margin-top:6px">
+            <button class="btn-add-prod" onclick="addProdBlock()">+ Додати виріб</button>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+          <div class="row">
+            <button class="btn btn-primary" onclick="submitOrder()">Створити →</button>
+            <button class="btn" onclick="resetForm()">Скинути</button>
+            <span class="err" id="form-err"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Список замовлень -->
+      <div class="section-header">
+        <div class="section-title">Список замовлень</div>
+        <span class="info-pill" id="orders-count">0 замовлень</span>
+      </div>
+      <div class="orders-wrap">
+        <table class="orders-table" id="orders-table">
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Назва</th>
+              <th>Створено · Дедлайн</th>
+              <th>Виробництво</th>
+              <th>Статус</th>
+              <th style="width:32px"></th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+
+    <!-- КАЛЕНДАР (1/3 права) -->
+    <div class="cal-wrap" id="cal-wrap"></div>
+  </div>
+</div>
+
+<!-- ══════════════ РОЗКРІЙ ══════════════ -->
+<div class="page" id="page-rozkroi">
+  <div class="ws-section-head">
+    <div class="ws-title">✂️ РОЗКРІЙ — замовлення в роботі</div>
+    <div class="row no-print">
+      <button class="btn btn-print btn-sm" onclick="window.print()">🖨️ Друк</button>
+    </div>
+  </div>
+  <div id="rozkroi-list"></div>
+</div>
+
+<!-- ══════════════ ЦЕХ ══════════════ -->
+<div class="page" id="page-tsekh">
+  <div class="ws-section-head">
+    <div class="ws-title">🧵 ЦЕХ — пошиття</div>
+    <div class="row no-print">
+      <button class="btn btn-print btn-sm" onclick="window.print()">🖨️ Друк</button>
+    </div>
+  </div>
+  <div id="tsekh-list"></div>
+</div>
+
+<!-- ══════════════ АРХІВ ══════════════ -->
+<div class="page" id="page-archive">
+  <div class="section-header">
+    <div class="section-title">📦 Архів закритих замовлень</div>
+  </div>
+  <div id="archive-list"></div>
+</div>
+
+<!-- ══════════════ ВИРОБИ TIER ══════════════ -->
+<div class="page" id="page-vt">
+  <div class="section-header">
+    <div class="section-title">🧠 Довідник виробів TIER</div>
+    <span class="info-pill" id="vt-count"></span>
+  </div>
+  <!-- Форма додавання -->
+  <div class="create-header closed" id="vtFormHdr" onclick="toggleVtForm()" style="margin-bottom:14px">
+    <div class="create-header-label">➕ Додати новий виріб</div>
+    <div class="create-icon">+</div>
+  </div>
+  <div class="create-body" id="vtFormBody">
+    <div class="create-inner">
+      <div class="form-row" style="grid-template-columns:1fr 120px 120px">
+        <div class="fg"><label class="lbl">Назва виробу</label><input type="text" id="vt-name" placeholder="Назва..."></div>
+        <div class="fg"><label class="lbl">Код</label><input type="text" id="vt-code" placeholder="RG001"></div>
+        <div class="fg"><label class="lbl">Стать</label>
+          <select id="vt-sex"><option value="">—</option><option>Жіноча</option><option>Чоловіча</option><option>Унісекс</option><option>Дитяча</option></select>
+        </div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+        <div class="fg"><label class="lbl">Тканина</label><input type="text" id="vt-fabric" placeholder="Назва..."></div>
+        <div class="fg"><label class="lbl">Артикул тканини</label><input type="text" id="vt-art" placeholder="201"></div>
+        <div class="fg"><label class="lbl">Колір</label><input type="text" id="vt-color" placeholder="Чорний"></div>
+        <div class="fg"><label class="lbl">Штрихкод</label><input type="text" id="vt-barcode" placeholder="RG001BN..."></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="fg"><label class="lbl">Код брендування</label><input type="text" id="vt-brand-code" placeholder="001"></div>
+        <div class="fg"><label class="lbl">Матеріал брендування</label><input type="text" id="vt-brand-mat" placeholder="плівка..."></div>
+        <div class="fg" style="justify-content:flex-end">
+          <label class="lbl">&nbsp;</label>
+          <div class="row"><button class="btn btn-primary btn-sm" onclick="addVtItem()">Додати виріб</button><span class="err" id="vt-err"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="vt-list"></div>
+</div>
+
+<!-- ══════════════ ДОВІДНИК ══════════════ -->
+<div class="page" id="page-directory">
+  <div class="section-header"><div class="section-title">📚 Довідник матеріалів</div></div>
+  <div class="create-header closed" id="dirFormHdr" onclick="toggleDirForm()" style="margin-bottom:14px">
+    <div class="create-header-label">➕ Додати матеріал</div>
+    <div class="create-icon">+</div>
+  </div>
+  <div class="create-body" id="dirFormBody">
+    <div class="create-inner">
+      <div class="form-row" style="grid-template-columns:130px 1fr 1fr 1fr 1fr auto">
+        <div class="fg"><label class="lbl">Вид</label>
+          <select id="dir-type">
+            <option value="fabric">Тканина</option>
+            <option value="thread">Нитки</option>
+            <option value="hardware">Фурнітура</option>
+            <option value="branding">Брендування</option>
+          </select>
+        </div>
+        <div class="fg"><label class="lbl">Назва</label><input type="text" id="dir-name" placeholder="Назва матеріалу"></div>
+        <div class="fg"><label class="lbl">Код</label><input type="text" id="dir-code" placeholder="FAB-01"></div>
+        <div class="fg"><label class="lbl">Колір</label><input type="text" id="dir-color" placeholder="Колір"></div>
+        <div class="fg"><label class="lbl">Матеріал / склад</label><input type="text" id="dir-mat" placeholder="100% поліестер"></div>
+        <div class="fg" style="justify-content:flex-end">
+          <label class="lbl">&nbsp;</label>
+          <div class="row"><button class="btn btn-primary btn-sm" onclick="addDirItem()">Додати</button><span class="err" id="dir-err"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="dir-sections"></div>
+</div>
+
+<!-- ══════════════ ІНСТРУКЦІЯ ══════════════ -->
+<div class="page" id="page-guide">
+  <div class="section-header"><div class="section-title">📄 Налаштування Google Sheets + Apps Script</div></div>
+
+  <!-- ── ЧАСТИНА 1: GOOGLE SHEETS ── -->
+  <div style="font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+    ▣ ЧАСТИНА 1 — GOOGLE SHEETS
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 1 · Створити таблицю і листи</div>
+    <ul class="guide-list">
+      <li>Відкрий <strong>sheets.google.com</strong> → «+» → Порожня таблиця. Назви файл: <strong>TIER.MFG</strong></li>
+      <li>Внизу є один лист «Аркуш1» — перейменуй його. Для цього: двічі клікни на назву вкладки → введи <strong>ЗАМОВЛЕННЯ</strong></li>
+      <li>Натисни «+» ще чотири рази і назви листи точно так (включно з пробілами і дужками):<br>
+        <strong>ЗАМОВЛЕННЯ &nbsp;·&nbsp; ВИРОБИ TIER &nbsp;·&nbsp; ДОВІДНИК &nbsp;·&nbsp; АРХІВ</strong>
+      </li>
+    </ul>
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 2 · Лист ЗАМОВЛЕННЯ — структура</div>
+    <div class="formula-block">A1: №   B1: Дата   C1: Назва   D1: Дедлайн   E1: Tier   F1: Статус   G1: Початок   H1: Кінець   I1: Вироби</div>
+    <ul class="guide-list">
+      <li><strong>Колонка A — автонумерація.</strong> Клікни на A2, встав формулу (крапка з комою — бо українська локаль):
+        <div class="formula-block">=ЯКЩО(C2="";"";РЯДОК()-1)</div>
+        Виділи A2 → потягни за кутик донизу до A1000
+      </li>
+      <li><strong>Колонка D — формат дати.</strong> Виділи D2:D1000 → Формат → Число → Дата</li>
+      <li><strong>Колонка G і H — формат дати.</strong> Те саме: Формат → Число → Дата</li>
+      <li><strong>Колонка E — мітка Tier.</strong> Буде «ТАК» або порожньо — нічого окремо не налаштовуй</li>
+      <li><strong>Колонка F — статус.</strong> Виділи F2:F1000 → Дані → Перевірка даних → Додати правило → Розкривний список → впиши через кому:
+        <div class="formula-block">Не почато,Розкрій,Цех,Готово,Закрито</div>
+      </li>
+      <li><strong>Колонка I — вироби у форматі JSON.</strong> Заповнюється автоматично з HTML — не чіпай вручну</li>
+    </ul>
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 3 · Лист АРХІВ — структура</div>
+    <ul class="guide-list">
+      <li>Той самий рядок заголовків що і в ЗАМОВЛЕННЯ — скопіюй рядок 1 з листа ЗАМОВЛЕННЯ і встав тут</li>
+      <li>Дані сюди потрапляють автоматично з HTML коли замовлення закривається</li>
+    </ul>
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 4 · Умовне форматування листа ЗАМОВЛЕННЯ (за бажанням)</div>
+    <ul class="guide-list">
+      <li>Виділи рядки A2:I1000 → Формат → Умовне форматування → Додати правило</li>
+      <li>В полі «Формула» — <strong>увага: крапка з комою, бо українська локаль</strong></li>
+      <li><strong>Зелений (Готово):</strong> <div class="formula-block">=$F2="Готово"</div> Колір фону: #0d2b1a · Текст: #2ecc71</li>
+      <li><strong>Жовтий (Цех):</strong> <div class="formula-block">=$F2="Цех"</div> Фон: #2a2208 · Текст: #f5c518</li>
+      <li><strong>Помаранчевий (Розкрій):</strong> <div class="formula-block">=$F2="Розкрій"</div> Фон: #2a1505 · Текст: #f97316</li>
+      <li><strong>Червоний (протерміновані):</strong> <div class="formula-block">=І($D2&lt;СЬОГОДНІ();$F2&lt;&gt;"Готово";$F2&lt;&gt;"Закрито")</div> Фон: #2b0d0d · Текст: #e74c3c</li>
+      <li>Порядок правил: протерміновані → зверху (вищий пріоритет)</li>
+    </ul>
+  </div>
+
+  <!-- ── ЧАСТИНА 2: APPS SCRIPT ── -->
+  <div style="font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+    ▣ ЧАСТИНА 2 — GOOGLE APPS SCRIPT (API)
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 5 · Відкрити редактор Apps Script</div>
+    <ul class="guide-list">
+      <li>У Google Sheets відкрий меню <strong>Розширення → Apps Script</strong> (або Extensions → Apps Script якщо інтерфейс англійський)</li>
+      <li>Відкриється нова вкладка з редактором. Видали весь вміст файлу <strong>Код.gs</strong> (Ctrl+A → Delete)</li>
+      <li>Скопіюй весь код нижче і встав його (Ctrl+V)</li>
+      <li>Знайди перший рядок <code>const SS_ID = "ВАШ_ID_ТУТА"</code> і заміни <code>ВАШ_ID_ТУТА</code> на ID своєї таблиці</li>
+      <li>ID таблиці — це частина URL між <code>/d/</code> і <code>/edit</code>:<br>
+        <div class="formula-block">https://docs.google.com/spreadsheets/d/<span style="color:var(--yellow)">1BxiMVs0XRA5nFMdKvBdBZjgmUUqpt</span>/edit
+                                                                            ↑ це і є ID — копіюй тільки цю частину</div>
+      </li>
+      <li>Натисни <strong>💾 Зберегти</strong> (або Ctrl+S)</li>
+    </ul>
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 6 · Код Apps Script — вставити повністю</div>
+    <div class="formula-block"><span style="color:var(--text-dim)">// ═══════════════════════════════════════════════
+// TIER.MFG — Apps Script API
+// Вставити повністю в Код.gs, замінивши весь вміст
+// ═══════════════════════════════════════════════</span>
+
+<span style="color:var(--yellow)">const SS_ID = "ВАШ_ID_ТУТА";</span> <span style="color:var(--text-dim)">// ← замінити на ID своєї таблиці</span>
+const SHEET_ORDERS  = "ЗАМОВЛЕННЯ";
+const SHEET_ARCHIVE = "АРХІВ";
+
+<span style="color:var(--text-dim)">// ── CORS-заголовки для запитів з браузера ──</span>
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST",
+    "Access-Control-Allow-Headers": "Content-Type"
+  };
+}
+
+function makeResponse(data) {
+  const output = ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+  return output;
+}
+
+<span style="color:var(--text-dim)">// ── GET: читання даних ──
+// Перевірка: e може бути undefined якщо запускати вручну в редакторі.
+// Через браузер (після деплою) — завжди є.</span>
+function doGet(e) {
+  try {
+    const action = (e &amp;&amp; e.parameter) ? e.parameter.action : "";
+    const ss = SpreadsheetApp.openById(SS_ID);
+
+    if (action === "getOrders") {
+      return makeResponse(readSheet(ss, SHEET_ORDERS));
+    }
+    if (action === "getArchive") {
+      return makeResponse(readSheet(ss, SHEET_ARCHIVE));
+    }
+
+    <span style="color:var(--text-dim)">// Якщо action невідомий — повернути порожній масив</span>
+    return makeResponse([]);
+
+  } catch (err) {
+    return makeResponse({ error: err.toString() });
+  }
+}
+
+<span style="color:var(--text-dim)">// ── POST: запис даних ──</span>
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(SS_ID);
+    const action = payload.action;
+
+    if (action === "addOrder") {
+      const sh = ss.getSheetByName(SHEET_ORDERS);
+      const lastNo = getLastOrderNo(sh);
+      sh.appendRow([
+        lastNo + 1,
+        payload.created,
+        payload.name,
+        payload.deadline,
+        payload.tier ? "ТАК" : "",
+        "Не почато",
+        "",
+        "",
+        payload.productsJson
+      ]);
+      return makeResponse({ ok: true, no: lastNo + 1 });
+    }
+
+    if (action === "updateOrder") {
+      const sh = ss.getSheetByName(SHEET_ORDERS);
+      const row = findRowByNo(sh, payload.no);
+      if (!row) return makeResponse({ ok: false, error: "not found" });
+
+      <span style="color:var(--text-dim)">// Колонки: A=1(№) B=2(Дата) C=3(Назва) D=4(Дедлайн) E=5(Tier)
+      //          F=6(Статус) G=7(Початок) H=8(Кінець) I=9(Вироби)</span>
+      const colMap = { status: 6, workStart: 7, workEnd: 8, productsJson: 9 };
+      const col = colMap[payload.field];
+      if (col) sh.getRange(row, col).setValue(payload.value);
+      return makeResponse({ ok: true });
+    }
+
+    if (action === "closeOrder") {
+      const sh = ss.getSheetByName(SHEET_ORDERS);
+      const row = findRowByNo(sh, payload.no);
+      if (!row) return makeResponse({ ok: false, error: "not found" });
+
+      <span style="color:var(--text-dim)">// Оновити статус на Закрито, потім скопіювати в АРХІВ і видалити</span>
+      sh.getRange(row, 6).setValue("Закрито");
+      const rowData = sh.getRange(row, 1, 1, 9).getValues()[0];
+      const archSh = ss.getSheetByName(SHEET_ARCHIVE);
+      archSh.appendRow(rowData);
+      sh.deleteRow(row);
+      return makeResponse({ ok: true });
+    }
+
+    return makeResponse({ ok: false, error: "unknown action" });
+
+  } catch (err) {
+    return makeResponse({ error: err.toString() });
+  }
+}
+
+<span style="color:var(--text-dim)">// ── Допоміжні функції ──</span>
+
+function readSheet(ss, sheetName) {
+  const sh = ss.getSheetByName(sheetName);
+  if (!sh) return [];
+  const data = sh.getDataRange().getValues();
+  if (data.length < 2) return [];
+  const headers = data[0];
+  return data.slice(1)
+    .filter(r => r[0] !== "" &amp;&amp; r[0] !== null)
+    .map(r => {
+      const obj = {};
+      headers.forEach((h, i) => {
+        <span style="color:var(--text-dim)">// Дати перетворюємо в рядок формату YYYY-MM-DD</span>
+        if (r[i] instanceof Date) {
+          obj[h] = Utilities.formatDate(r[i], Session.getScriptTimeZone(), "yyyy-MM-dd");
+        } else {
+          obj[h] = r[i];
+        }
+      });
+      return obj;
+    });
+}
+
+function getLastOrderNo(sh) {
+  const data = sh.getDataRange().getValues();
+  if (data.length < 2) return 0;
+  let max = 0;
+  for (let i = 1; i &lt; data.length; i++) {
+    const n = parseInt(data[i][0]);
+    if (!isNaN(n) &amp;&amp; n > max) max = n;
+  }
+  return max;
+}
+
+function findRowByNo(sh, no) {
+  const data = sh.getDataRange().getValues();
+  for (let i = 1; i &lt; data.length; i++) {
+    if (String(data[i][0]) === String(no)) return i + 1;
+  }
+  return null;
+}</div>
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 7 · Опублікувати як веб-застосунок (Deploy)</div>
+    <ul class="guide-list">
+      <li>В редакторі Apps Script натисни синю кнопку <strong>«Розгорнути»</strong> (або Deploy) → <strong>«Нове розгортання»</strong></li>
+      <li>У вікні що відкрилось: натисни шестерінку ⚙️ поруч з «Тип» → обери <strong>«Веб-застосунок»</strong></li>
+      <li>Заповни поля:
+        <div class="formula-block">Опис:            TIER.MFG API (або будь-що)
+Виконувати як:   Я (your@gmail.com)
+Хто має доступ:  Усі  ← обов'язково, інакше HTML не зможе звертатись</div>
+      </li>
+      <li>Натисни <strong>«Розгорнути»</strong> → Google попросить авторизацію → натисни «Авторизувати доступ» → вибери свій Google-акаунт → «Додатково» → «Перейти до TIER.MFG (небезпечно)» → «Дозволити»</li>
+      <li>Скопіюй URL який з'явиться — він виглядає так:
+        <div class="formula-block">https://script.google.com/macros/s/<span style="color:var(--yellow)">AKfycbXXXXXXXXXXXXXXXXXXXX</span>/exec</div>
+      </li>
+      <li style="color:var(--red)">⚠️ Важливо: при будь-якій зміні коду — <strong>Розгорнути → Нове розгортання</strong> (не «Керувати розгортаннями» і не «Редагувати»). Інакше зміни не застосуються.</li>
+    </ul>
+  </div>
+
+  <!-- ── ЧАСТИНА 3: HTML + GITHUB ── -->
+  <div style="font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+    ▣ ЧАСТИНА 3 — ПІДКЛЮЧЕННЯ HTML І GITHUB PAGES
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 8 · Прописати API URL в HTML файлі</div>
+    <ul class="guide-list">
+      <li>Відкрий HTML файл у будь-якому текстовому редакторі (VS Code, Notepad++, навіть звичайний Блокнот)</li>
+      <li>Знайди рядок (він близько на початку тегу &lt;script&gt;):
+        <div class="formula-block">const API_URL = null;</div>
+      </li>
+      <li>Заміни <code>null</code> на URL з кроку 7 в лапках:
+        <div class="formula-block">const API_URL = "https://script.google.com/macros/s/AKfycbXXXX.../exec";</div>
+      </li>
+      <li>Збережи файл (Ctrl+S)</li>
+      <li>Відкрий HTML в браузері (двічі клікни на файл) — при першому завантаженні дані підтягнуться з Google Sheets</li>
+    </ul>
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 9 · Розмістити на GitHub Pages (безкоштовний хостинг)</div>
+    <ul class="guide-list">
+      <li>Якщо немає акаунту — зареєструйся на <strong>github.com</strong> (безкоштовно)</li>
+      <li>Після входу натисни <strong>«+»</strong> у правому верхньому куті → <strong>«New repository»</strong></li>
+      <li>Заповни:
+        <div class="formula-block">Repository name:  tier-mfg   (або будь-яка назва без пробілів)
+Visibility:       Public      ← обов'язково Public для GitHub Pages
+</div>
+      </li>
+      <li>Натисни <strong>«Create repository»</strong></li>
+      <li>На сторінці репозиторію натисни <strong>«uploading an existing file»</strong> → перетягни свій HTML файл → натисни <strong>«Commit changes»</strong></li>
+      <li><strong>Важливо: перейменуй файл на <code>index.html</code></strong> — тоді GitHub Pages відкриватиме його за замовчуванням</li>
+      <li>Тепер увімкни GitHub Pages: <strong>Settings → Pages → Source → Deploy from a branch → main → / (root) → Save</strong></li>
+      <li>Через ~1 хвилину твій сайт буде доступний за адресою:
+        <div class="formula-block">https://<span style="color:var(--yellow)">твій_нікнейм</span>.github.io/<span style="color:var(--yellow)">tier-mfg</span>/</div>
+      </li>
+      <li>Щоб оновити файл на GitHub: відкрий репозиторій → клікни на <code>index.html</code> → іконка олівця ✏️ → встав новий вміст → «Commit changes»</li>
+    </ul>
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">Крок 10 · Перевірка що все працює</div>
+    <ul class="guide-list">
+      <li>Відкрий сайт на GitHub Pages → вкладка «Замовлення» має завантажити дані з Google Sheets (якщо вони є)</li>
+      <li>Створи тестове замовлення → відкрий Google Sheets → переконайся що новий рядок з'явився в листі ЗАМОВЛЕННЯ</li>
+      <li>Зміни статус в HTML → перевір що статус змінився в колонці F таблиці</li>
+      <li>Якщо дані не підтягуються — відкрий консоль браузера (F12 → Console) і подивись на помилки. Найчастіша: CORS або неправильний URL</li>
+      <li>Якщо бачиш помилку CORS — переконайся що в Apps Script «Хто має доступ» = <strong>Усі</strong>, і зроби нове розгортання</li>
+    </ul>
+  </div>
+
+  <div class="guide-card">
+    <div class="guide-title">⚠️ Типові помилки і рішення</div>
+    <ul class="guide-list">
+      <li><strong>TypeError: Cannot read properties of undefined (reading 'parameter')</strong> — ця помилка виникає коли запускаєш doGet вручну в редакторі Apps Script. Це нормально — функція очікує запит з браузера. Через URL після деплою все працює</li>
+      <li><strong>Дані не зберігаються після перезавантаження</strong> — означає що API_URL = null. Перевір що замінив на правильний URL</li>
+      <li><strong>Формули у Sheets не працюють</strong> — перевір що використовуєш крапку з комою (;) як роздільник, а не кому. В українській локалі Google Sheets роздільник — крапка з комою</li>
+      <li><strong>Після зміни коду Apps Script нічого не змінилось</strong> — зроби «Нове розгортання» (не редагуй існуюче). URL при цьому зміниться — оновіть API_URL в HTML</li>
+      <li><strong>GitHub Pages показує 404</strong> — переконайся що файл називається <code>index.html</code> (не TIER_MFG_final.html), і що Pages увімкнено в Settings</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  API (поки null — локальний режим)
+//  Замінити на URL Apps Script після деплою:
+//  const API_URL = "https://script.google.com/macros/s/.../exec";
+// ════════════════════════════════════════════════
+const API_URL = "AKfycbyKfKE2pZILAiX71d9FCxlpmf1bkbatQV-sNhdG1UxgfVVSivgzKJ5jehvIhl7wd6Lx-g";
+
+// ════════════════════════════════════════════════
+//  ДАНІ ВИРОБІВ З EXCEL
+// ════════════════════════════════════════════════
+const VT_PRODUCTS = [{"id":1,"name":"Рашгард","code":"RG001","variants":[{"color":"Молочний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"RG001MINEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"},{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"RG001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":2,"name":"Шорти","code":"RT001","variants":[{"color":"чорний","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185968. Низ: 11027","barcode":"RT001BNSPWL","brandCode":"-","brandMat":"-","sex":"Жіноча"},{"color":"Основа: сірий; Низ: білий.","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185971; Низ: 11053","barcode":"RT001LGWNSPWL","brandCode":"-","brandMat":"-","sex":"Жіноча"},{"color":"Основа: сірий; Низ: чорний.","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185971; Низ: 11027","barcode":"RT001LGBNSPML","brandCode":"-","brandMat":"-","sex":"Чоловіча"},{"color":"чорний","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185968. Низ: 11027","barcode":"RT001BNSPML","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":3,"name":"Лосини","code":"L004","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"L004BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":4,"name":"Велосипедки","code":"CS002","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"CS002BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":5,"name":"Вітрівка","code":"W003","variants":[{"color":"Основа: сіро-блакитна; Вставки: білий","fabric":"Основа: Віва плащова; Вставки: Мікрофірба спорт Carvico","fabricArt":"Основа: 50301; Вставки: 18245","barcode":"W003002GBWPNEWL","brandCode":"002","brandMat":"світловідбивна плівка","sex":"Жіноча"},{"color":"Чорний","fabric":"Основа: Віва плащова; Вставки: Трикотаж мікромасло.","fabricArt":"Основа: 50301; Вставки: 11027","barcode":"W003002BPNEWL","brandCode":"002","brandMat":"світловідбивна плівка","sex":"Жіноча"},{"color":"Основа: сіро-блакитна; Вставки: білий","fabric":"Основа: Віва плащова; Вставки: Мікрофірба спорт Carvico","fabricArt":"Основа: 50301; Вставки: 18245","barcode":"W003002GBWPNEML","brandCode":"002","brandMat":"світловідбивна плівка","sex":"Чоловіча"},{"color":"Чорний","fabric":"Основа: Віва плащова; Вставки: Трикотаж мікромасло.","fabricArt":"Основа: 50301; Вставки: 11027","barcode":"W003002BPNEML","brandCode":"002","brandMat":"світловідбивна плівка","sex":"Чоловіча"}]},{"id":6,"name":"Реглан","code":"RR001","variants":[{"color":"Чорний","fabric":"Основа: ТРИКОТАЖ СПОРТ ВІСКОЗА; Вставки: Трикотаж мікромасло.","fabricArt":"Основа: 144; вставки: 11027","barcode":"RR001001BVPWL","brandCode":"001","brandMat":"світловідбивна плівка","sex":"Жіноча"},{"color":"Основа: світло-блакитний; Вставки: білий","fabric":"Основа: ТРИКОТАЖ СПОРТ ВІСКОЗА; Вставки: Мікрофірба спорт Carvico","fabricArt":"Основа: 144; вставки: 18245","barcode":"RR001001LBUWVPML","brandCode":"001","brandMat":"світловідбивна плівка","sex":"Жіноча"}]},{"id":7,"name":"Лонгслів","code":"LS004","variants":[{"color":"Оливковий","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"LS003004LOPWL","brandCode":"004","brandMat":"біла плівка","sex":"Жіноча"}]},{"id":8,"name":"Топ","code":"T002","variants":[{"color":"чорний","fabric":"Основа: ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ; Підкладка: Трикотаж мікромасло.","fabricArt":"Основа: 201 Вставки: 11027","barcode":"T002001BNEWL","brandCode":"001","brandMat":"дтф","sex":"Жіноча"}]},{"id":9,"name":"Лонгслів","code":"LS005","variants":[{"color":"Білий","fabric":"Футер стрейч двохнитка","fabricArt":"178330","barcode":"LS005WCEWL","brandCode":"сердечко","brandMat":"дтф","sex":"жіноча"}]},{"id":10,"name":"Майка","code":"RS003","variants":[{"color":"чорний","fabric":"Мікро лакоста","fabricArt":"83645","barcode":"RS003005BPWL","brandCode":"005","brandMat":"світловідбивна плівка","sex":"жіноча"},{"color":"Салатовий","fabric":"Мікро лакоста","fabricArt":"184514","barcode":"RS003005BLPWL","brandCode":"005","brandMat":"світловідбивна плівка","sex":"жіноча"}]},{"id":11,"name":"Шорти","code":"RT002","variants":[{"color":"Чорний","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185968. Низ: 11027","barcode":"RT002BNSPWL","brandCode":"008","brandMat":"Плівка біла + світловідбивна","sex":"жіноча"},{"color":"Основа: сірий; Низ: білий.","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185971; Низ: 11053","barcode":"RT002LGBNSPWL","brandCode":"008","brandMat":"Плівка біла + світловідбивна","sex":"жіноча"}]},{"id":12,"name":"Лонгслів","code":"RG002","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ВІСКОЗА","fabricArt":"144","barcode":"RG002BPWL","brandCode":"005","brandMat":"плівка біла","sex":"жіноча"}]},{"id":13,"name":"Топ","code":"T003","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"T003BNEEWL","brandCode":"001","brandMat":"біла плівка","sex":"жіноча"}]},{"id":14,"name":"Лосини","code":"L005","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"L005BNEEWL","brandCode":"001","brandMat":"біла плівка","sex":"жіноча"}]},{"id":15,"name":"Топ","code":"T004","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"T004004BNPWL","brandCode":"004","brandMat":"біла плівка","sex":"жіноча"}]},{"id":16,"name":"Майка спортивна","code":"TS001","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"TS001004BPWL","brandCode":"004","brandMat":"біла плівка","sex":"жіноча"},{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"TS001004BPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"},{"color":"Білий","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"TS001004WPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"}]},{"id":17,"name":"Шорти","code":"RT003","variants":[{"color":"Чорний","fabric":"Основа: Плащова стрейч спорт. Низ: Трикотаж Мікромасло","fabricArt":"Основа: 185968. Низ: 11027","barcode":"RT003BNSPWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":18,"name":"Лосини","code":"L006","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"L006BNEWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":19,"name":"Футболка базовий шар","code":"FB001","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"FB001BNEWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":20,"name":"Шорти","code":"RT004","variants":[{"color":"Чорний","fabric":"Плащова стрейч спорт","fabricArt":"185968","barcode":"RT004BNSPWL","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":21,"name":"Лонгслів спортивний","code":"LSP001","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"LSP001BNEWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":22,"name":"Спідниця-шорти","code":"SKS001","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"SKS001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":23,"name":"Топ","code":"T005","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"T005BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":24,"name":"Футболка для бігу","code":"FR001","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"FR001004BPWL","brandCode":"004","brandMat":"біла плівка","sex":"жіноча"},{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"FR001004BPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"}]},{"id":25,"name":"Топ","code":"T006","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"T006004BPWL","brandCode":"004","brandMat":"біла плівка","sex":"Жіноча"}]},{"id":26,"name":"Спортивні штани джогери","code":"JP001","variants":[{"color":"Чорний","fabric":"Двонитка","fabricArt":"280","barcode":"JP001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"},{"color":"Чорний","fabric":"Двонитка","fabricArt":"280","barcode":"JP001BNEML","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":27,"name":"Рашгард","code":"RG003","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"RG003BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":28,"name":"Футболка спортивна","code":"FS001","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"FS001004BPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"}]},{"id":29,"name":"Жилетка","code":"JL001","variants":[{"color":"Чорний","fabric":"Основа: Плащова; Підкладка: Флісова","fabricArt":"Основа: 50301; Підкладка: FL01","barcode":"JL001BNEML","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":30,"name":"Анорак + сумочка","code":"AN001","variants":[{"color":"Чорний","fabric":"Плащова стрейч спорт","fabricArt":"185968","barcode":"AN001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":31,"name":"Флісова кофта","code":"FL001","variants":[{"color":"Чорний","fabric":"Фліс","fabricArt":"FL001","barcode":"FL001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":32,"name":"Футболка casual","code":"FC001","variants":[{"color":"Чорний","fabric":"Футер стрейч двохнитка","fabricArt":"178330","barcode":"FC001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":33,"name":"Худі zip","code":"HZ001","variants":[{"color":"Чорний","fabric":"Футер стрейч двохнитка","fabricArt":"178330","barcode":"HZ001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":34,"name":"Світшот casual","code":"SW001","variants":[{"color":"Чорний","fabric":"Футер стрейч двохнитка","fabricArt":"178330","barcode":"SW001BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":35,"name":"майка","code":"M001","variants":[{"color":"чорний","fabric":"Мікро лакоста","fabricArt":"83645","barcode":"M001BPWL","brandCode":"005","brandMat":"світловідбивна плівка","sex":"жіноча"}]},{"id":36,"name":"футболка","code":"F001","variants":[{"color":"чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"F001004BPWL","brandCode":"004","brandMat":"біла плівка","sex":"жіноча"}]},{"id":37,"name":"шорти","code":"SH001","variants":[{"color":"чорний","fabric":"Плащова стрейч спорт","fabricArt":"185968","barcode":"SH001BNSPWL","brandCode":"-","brandMat":"-","sex":"жіноча"}]},{"id":38,"name":"Топ","code":"T007","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"T007BNEWL","brandCode":"-","brandMat":"-","sex":"Жіноча"}]},{"id":39,"name":"Рашгард","code":"RG004","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"RG004BNEWL","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]},{"id":40,"name":"Футболка базовий шар","code":"FB002","variants":[{"color":"Чорний","fabric":"Мікрофібра спорт","fabricArt":"247","barcode":"FB002004BPML","brandCode":"004","brandMat":"біла плівка","sex":"Чоловіча"}]},{"id":41,"name":"Лосини","code":"L007","variants":[{"color":"Чорний","fabric":"ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ","fabricArt":"201","barcode":"L007BNEWL","brandCode":"-","brandMat":"-","sex":"Чоловіча"}]}];
+
+// ════════════════════════════════════════════════
+//  DB — демо-дані
+// ════════════════════════════════════════════════
+let DB = {
+  orders: [
+    { id:1, no:1, created:'2026-03-01', name:'Вітрівка Carvico весна', deadline:'2026-04-20',
+      tier:true, status:'rozkroi', workStart:'2026-04-10', workEnd:'2026-04-19',
+      products:[{vtId:5, name:'Вітрівка', code:'W003', variantIdx:0,
+        sizes:[{sex:'Жіноча',sz:'S',qty:20,done:0},{sex:'Жіноча',sz:'M',qty:30,done:5},{sex:'Чоловіча',sz:'M',qty:25,done:0}]}]
+    },
+    { id:2, no:2, created:'2026-03-10', name:'Рашгард жіночий партія 2', deadline:'2026-04-12',
+      tier:false, status:'shveika', workStart:'2026-04-05', workEnd:'2026-04-15',
+      products:[{vtId:1, name:'Рашгард', code:'RG001', variantIdx:1,
+        sizes:[{sex:'Жіноча',sz:'S',qty:40,done:15},{sex:'Жіноча',sz:'M',qty:40,done:20}]}]
+    },
+    { id:3, no:3, created:'2026-03-20', name:'Лосини чорні базові', deadline:'2026-05-10',
+      tier:true, status:'new', workStart:'', workEnd:'',
+      products:[{vtId:3, name:'Лосини', code:'L004', variantIdx:0,
+        sizes:[{sex:'Жіноча',sz:'S',qty:30,done:0},{sex:'Жіноча',sz:'M',qty:40,done:0},{sex:'Жіноча',sz:'L',qty:20,done:0}]}]
+    },
+    { id:4, no:4, created:'2026-02-15', name:'Майка спортивна весна', deadline:'2026-03-20',
+      tier:false, status:'done', workStart:'2026-02-25', workEnd:'2026-03-15',
+      products:[{vtId:16, name:'Майка спортивна', code:'TS001', variantIdx:0,
+        sizes:[{sex:'Жіноча',sz:'S',qty:50,done:50},{sex:'Жіноча',sz:'M',qty:50,done:50}]}]
+    },
+  ],
+  directory: {
+    fabric:   [{id:1,name:'ТРИКОТАЖ СПОРТ ЩІЛЬНИЙ',code:'FAB-01',color:'Чорний',mat:'80% поліестер 20% спандекс'}],
+    thread:   [{id:1,name:'Нитка № 40',code:'TH-01',color:'Чорний',mat:'Поліестер'}],
+    hardware: [{id:1,name:'Блискавка YKK',code:'HW-01',color:'Чорний',mat:'Метал'}],
+    branding: [{id:1,name:'Плівка світловідбивна',code:'BR-01',color:'—',mat:'Термоплівка'}],
+  }
+};
+let nextOrderId = 5;
+let nextOrderNo = 5;
+let nextVtId = 42;
+let currentFilter = 'all';
+let prodBlockCount = 0;
+const DIR_LABELS = {fabric:'🟢 Тканина',thread:'🔵 Нитки',hardware:'🟡 Фурнітура',branding:'🟠 Брендування'};
+const DIR_TAGS   = {fabric:'dtag-fabric',thread:'dtag-thread',hardware:'dtag-hardware',branding:'dtag-branding'};
+
+// ════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════
+const todayStr = () => new Date().toISOString().slice(0,10);
+const fmtD = d => { if(!d) return '—'; const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}); };
+const fmtDFull = d => { if(!d) return '—'; const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'}); };
+const isOver = o => !['done','closed'].includes(o.status) && o.deadline && o.deadline < todayStr();
+const SLABELS = {new:'🔴 Не почато',rozkroi:'🟠 Розкрій',shveika:'🟡 Цех',done:'🟢 Готово',closed:'⚫ Закрито'};
+const SCLASS  = {new:'sb-new',rozkroi:'sb-rozkroi',shveika:'sb-shveika',done:'sb-done',closed:'sb-closed'};
+const sBadge  = s => { const over = s==='overdue'; const key = over?'new':s; return `<span class="sbadge ${SCLASS[key]||'sb-new'}">${over?'🔴 Протерм.':SLABELS[s]||s}</span>`; };
+
+// Clock
+function clock(){ document.getElementById('hdr-clock').textContent = new Date().toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' · ' + new Date().toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}); }
+clock(); setInterval(clock, 30000);
+
+// ════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════
+function goTab(tab, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  btn.classList.add('active');
+  if(tab==='orders'){renderStats();renderOrders();renderCalendar();}
+  if(tab==='rozkroi') renderWorkshop('rozkroi');
+  if(tab==='tsekh')   renderWorkshop('tsekh');
+  if(tab==='archive') renderArchive();
+  if(tab==='vt')      renderVt();
+  if(tab==='directory') renderDir();
+}
+
+// ════════════════════════════════════════════════
+//  STATS
+// ════════════════════════════════════════════════
+function renderStats() {
+  const active = DB.orders.filter(o=>o.status!=='closed');
+  const tier   = active.filter(o=>o.tier);
+  const counts = [
+    { lbl:'Всього',    cls:'c-all',  fn: l=>l.length },
+    { lbl:'Не почато', cls:'c-new',  fn: l=>l.filter(o=>o.status==='new').length },
+    { lbl:'В роботі',  cls:'c-work', fn: l=>l.filter(o=>['rozkroi','shveika'].includes(o.status)).length },
+    { lbl:'Готово',    cls:'c-done', fn: l=>l.filter(o=>o.status==='done').length },
+    { lbl:'Протерм.',  cls:'c-over', fn: l=>l.filter(o=>isOver(o)).length },
+  ];
+  let html = counts.map(c=>`
+    <div class="stat">
+      <div class="stat-val ${c.cls}">${c.fn(active)}<span class="tier-cnt">(${c.fn(tier)})</span></div>
+      <div class="stat-lbl">${c.lbl}</div>
+    </div>
+    <div class="stat-div"></div>
+  `).join('');
+  document.getElementById('stats-bar').innerHTML = html;
+}
+
+// ════════════════════════════════════════════════
+//  FILTER
+// ════════════════════════════════════════════════
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderOrders();
+}
+
+// ════════════════════════════════════════════════
+//  CREATE FORM
+// ════════════════════════════════════════════════
+let formOpen = false;
+function toggleCreate() {
+  formOpen = !formOpen;
+  const hdr = document.getElementById('createHdr');
+  const body = document.getElementById('createBody');
+  hdr.classList.toggle('open', formOpen);
+  hdr.classList.toggle('closed', !formOpen);
+  body.classList.toggle('open', formOpen);
+  if(formOpen) {
+    document.getElementById('f-no').value = String(nextOrderNo).padStart(3,'0');
+    document.getElementById('f-date').value = fmtDFull(todayStr());
+    if(!document.getElementById('prod-container').children.length) addProdBlock();
+  }
+}
+
+function toggleVtForm() {
+  const hdr = document.getElementById('vtFormHdr');
+  const body = document.getElementById('vtFormBody');
+  const open = body.classList.toggle('open');
+  hdr.classList.toggle('open', open);
+  hdr.classList.toggle('closed', !open);
+}
+function toggleDirForm() {
+  const hdr = document.getElementById('dirFormHdr');
+  const body = document.getElementById('dirFormBody');
+  const open = body.classList.toggle('open');
+  hdr.classList.toggle('open', open);
+  hdr.classList.toggle('closed', !open);
+}
+
+// ── Product blocks ──
+function addProdBlock() {
+  prodBlockCount++;
+  const num = prodBlockCount;
+  const id = 'pb'+num;
+  const div = document.createElement('div');
+  div.className = 'prod-block';
+  div.id = id;
+
+  // unique names from VT_PRODUCTS
+  const names = [...new Set(VT_PRODUCTS.map(p=>p.name))].sort();
+  const nameOpts = names.map(n=>`<option value="${n}">${n}</option>`).join('');
+
+  div.innerHTML = `
+    <div class="prod-block-head">
+      <div class="prod-block-num">Виріб ${num}</div>
+      <button class="btn-rm" onclick="document.getElementById('${id}').remove()">✕</button>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr">
+      <div class="fg">
+        <label class="lbl">Назва виробу</label>
+        <select id="${id}-name" onchange="onPbName('${id}')">
+          <option value="">— Обрати виріб —</option>${nameOpts}
+        </select>
+      </div>
+      <div class="fg">
+        <label class="lbl">Варіант (колір / стать)</label>
+        <select id="${id}-var" onchange="onPbVar('${id}')"><option value="">—</option></select>
+      </div>
+    </div>
+    <div class="prod-section-lbl" style="border-top:none;padding-top:4px">Розміри та кількість</div>
+    <div class="size-row-wrap" id="${id}-sizes"></div>
+    <button class="btn-add-row" onclick="addSizeRow('${id}')">+ Розмір</button>
+  `;
+  document.getElementById('prod-container').appendChild(div);
+}
+
+function onPbName(id) {
+  const name = document.getElementById(id+'-name').value;
+  const prods = VT_PRODUCTS.filter(p=>p.name===name);
+  const varSel = document.getElementById(id+'-var');
+  varSel.innerHTML = '<option value="">— Варіант —</option>';
+  prods.forEach(p => {
+    p.variants.forEach((v,vi) => {
+      varSel.innerHTML += `<option value="${p.id}:${vi}">${v.sex} · ${v.color}</option>`;
+    });
+  });
+}
+
+function onPbVar(id) { /* code auto-populated from VT */ }
+
+function addSizeRow(pbId) {
+  const container = document.getElementById(pbId+'-sizes');
+  const row = document.createElement('div');
+  row.className = 'size-row';
+  row.innerHTML = `
+    <select style="font-size:11px">
+      <option value="">Стать</option>
+      <option>Жіноча</option><option>Чоловіча</option><option>Унісекс</option><option>Дитяча</option>
+    </select>
+    <select style="font-size:11px">
+      <option value="">Розмір</option>
+      <option>XS</option><option>S</option><option>M</option><option>L</option>
+      <option>XL</option><option>XXL</option><option>3XL</option><option>Унісекс</option>
+    </select>
+    <input type="number" min="1" placeholder="Кількість" style="font-size:11px">
+    <button class="btn-rm" onclick="this.closest('.size-row').remove()">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+// ── Submit ──
+function submitOrder() {
+  const name = document.getElementById('f-name').value.trim();
+  const deadline = document.getElementById('f-deadline').value;
+  const err = document.getElementById('form-err');
+  if(!name||!deadline){err.textContent='❗ Вкажи назву і дедлайн';return;}
+
+  const blocks = document.querySelectorAll('.prod-block');
+  if(!blocks.length){err.textContent='❗ Додай виріб';return;}
+
+  const products = [];
+  for(const block of blocks){
+    const blockId = block.id; // e.g. 'pb1'
+    const nameSel = document.getElementById(blockId+'-name');
+    const varSel  = document.getElementById(blockId+'-var');
+    if(!nameSel||!nameSel.value){err.textContent='❗ Обери виріб';return;}
+    if(!varSel||!varSel.value){err.textContent='❗ Обери варіант (колір/стать)';return;}
+    const [vtId, vi] = varSel.value.split(':');
+    const vt = VT_PRODUCTS.find(p=>p.id===parseInt(vtId));
+    const sizes = [];
+    block.querySelectorAll('.size-row').forEach(row=>{
+      const sels = row.querySelectorAll('select');
+      const sex = sels[0].value, sz = sels[1].value;
+      const qty = parseInt(row.querySelector('input').value)||0;
+      if(sex&&sz&&qty) sizes.push({sex,sz,qty,done:0});
+    });
+    if(!sizes.length){err.textContent='❗ Додай розміри і кількість';return;}
+    products.push({vtId:parseInt(vtId), name:vt.name, code:vt.code, variantIdx:parseInt(vi), sizes});
+  }
+  err.textContent='';
+  DB.orders.unshift({
+    id:nextOrderId++, no:nextOrderNo++,
+    created:todayStr(), name, deadline,
+    tier: document.getElementById('ch-tier').checked,
+    status:'new', workStart:'', workEnd:'', products
+  });
+  resetForm(); toggleCreate();
+  renderStats(); renderOrders(); renderCalendar();
+}
+
+function resetForm(){
+  ['f-name','f-deadline'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('ch-tier').checked=false;
+  document.getElementById('prod-container').innerHTML='';
+  document.getElementById('form-err').textContent='';
+  prodBlockCount=0;
+}
+
+// ════════════════════════════════════════════════
+//  ORDERS LIST
+// ════════════════════════════════════════════════
+function renderOrders() {
+  const table = document.getElementById('orders-table');
+  // remove old tbodys (keep only thead)
+  table.querySelectorAll('tbody').forEach(b => b.remove());
+
+  const td = todayStr();
+  let list = DB.orders.filter(o=>o.status!=='closed');
+
+  if(currentFilter==='overdue') list = list.filter(o=>isOver(o));
+  else if(currentFilter==='closed') list = DB.orders.filter(o=>o.status==='closed');
+  else if(currentFilter!=='all') list = list.filter(o=>o.status===currentFilter);
+
+  list.sort((a,b)=>{
+    if(isOver(a)&&!isOver(b)) return -1;
+    if(!isOver(a)&&isOver(b)) return 1;
+    if(a.status==='done'&&b.status!=='done') return 1;
+    if(a.status!=='done'&&b.status==='done') return -1;
+    return new Date(a.deadline)-new Date(b.deadline);
+  });
+
+  document.getElementById('orders-count').textContent = list.length + ' замовлень';
+
+  if(!list.length){
+    table.insertAdjacentHTML('beforeend',
+      '<tbody><tr><td colspan="6" class="empty-state">Немає замовлень за цим фільтром</td></tr></tbody>');
+    return;
+  }
+
+  // insert each order as a separate <tbody>
+  list.forEach(o => {
+    table.insertAdjacentHTML('beforeend', buildOrderRow(o));
+  });
+}
+
+function buildOrderRow(o) {
+  const over = isOver(o);
+  const dispStatus = over ? 'overdue' : o.status;
+  const s = o.status;
+  const tierTag = o.tier ? `<span class="tag-tier">TIER</span>` : '';
+  const dlWarn = (o.workEnd && o.deadline && o.deadline < o.workEnd) ? '<span class="warn-icon">⚠️</span>' : '';
+  const dlCls = (dlWarn||over) ? 'date-val warn' : 'date-val';
+
+  // conflict
+  const conflict = DB.orders.some(x=> x.id!==o.id && x.workStart && x.workEnd && o.workStart && o.workEnd &&
+    x.workStart <= o.workEnd && x.workEnd >= o.workStart);
+
+  let rowClass = `order-card s-${s}`;
+  if(over) rowClass += ' is-overdue';
+  if(o.tier) rowClass += ' is-tier';
+
+  const statusOpts = ['new','rozkroi','shveika','done','closed'].map(sv=>
+    `<option value="${sv}" ${o.status===sv?'selected':''}>${SLABELS[sv]}</option>`).join('');
+
+  // size summary for header
+  const sizeSummary = o.products.slice(0,2).map(p=>
+    `<span style="font-size:10px;color:var(--text-dim)">${p.name}</span>`).join(', ') +
+    (o.products.length>2?` +${o.products.length-2}`:'');
+
+  return `
+<tbody class="${rowClass}" id="oc${o.id}">
+  <tr class="order-head" onclick="toggleOrder(${o.id})">
+    <td><span class="order-no">${String(o.no).padStart(3,'0')}</span></td>
+    <td class="nodim">${o.name} ${tierTag}${conflict?'<span class="warn-icon" title="Перетин дат">⚠️</span>':''}</td>
+    <td>
+      <div class="date-group">
+        <div class="date-lbl">Дата · Дедлайн</div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span class="date-val">${fmtD(o.created)}</span>
+          <span class="date-sep">→</span>
+          <span class="${dlCls}">${fmtD(o.deadline)}${dlWarn}</span>
+        </div>
+      </div>
+    </td>
+    <td>
+      <div class="date-group">
+        <div class="date-lbl">Виробництво</div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span class="date-val">${o.workStart?fmtD(o.workStart):'—'}</span>
+          <span class="date-sep">→</span>
+          <span class="date-val">${o.workEnd?fmtD(o.workEnd):'—'}</span>
+        </div>
+      </div>
+    </td>
+    <td class="nodim">${sBadge(dispStatus)}</td>
+    <td><div class="chevron">▾</div></td>
+  </tr>
+  <tr class="order-detail"><td colspan="6"><div class="detail-cell">
+    <div class="detail-grid">
+      <div class="detail-field"><div class="lbl">Початок виробництва</div>
+        <input type="date" value="${o.workStart||''}" onchange="updOrder(${o.id},'workStart',this.value)" style="max-width:160px">
+      </div>
+      <div class="detail-field"><div class="lbl">Кінець виробництва</div>
+        <input type="date" value="${o.workEnd||''}" onchange="updOrder(${o.id},'workEnd',this.value)" style="max-width:160px">
+      </div>
+      <div class="detail-field"><div class="lbl">Статус</div>
+        <select class="status-sel" onchange="updStatus(${o.id},this.value)">${statusOpts}</select>
+      </div>
+      <div class="detail-field"><div class="lbl">Дата створення</div><div class="val">${fmtDFull(o.created)}</div></div>
+    </div>
+    <div class="prod-detail-list">
+      <div class="pdl-title">Вироби</div>
+      ${o.products.map(p=>buildProdDetail(p)).join('')}
+    </div>
+  </div></td></tr>
+</tbody>`;
+}
+
+function buildProdDetail(p) {
+  const vt = VT_PRODUCTS.find(x=>x.id===p.vtId);
+  const v = vt ? vt.variants[p.variantIdx] : null;
+  const sizes = p.sizes.map(s=>{
+    const frac = `${s.done}/${s.qty}`;
+    const cls = s.done>=s.qty&&s.qty>0?'done-fraction full':s.done>0?'done-fraction partial':'done-fraction';
+    return `<span class="schip"><span class="sz">${s.sz}</span><span class="sq"> ${s.sex}</span>
+      <span class="${cls}" style="margin-left:4px">${frac}</span></span>`;
+  }).join('');
+  const meta = v ? `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:var(--text-dim);font-family:var(--mono)">
+    <span>Тканина: <b style="color:var(--text-muted)">${v.fabric}</b></span>
+    <span>Арт: <b style="color:var(--text-muted)">${v.fabricArt}</b></span>
+    <span>Колір: <b style="color:var(--text-muted)">${v.color}</b></span>
+    ${v.brandCode&&v.brandCode!=='-'?`<span>Брендування: <b style="color:var(--text-muted)">${v.brandCode} · ${v.brandMat}</b></span>`:''}
+    ${v.barcode?`<span>Штрихкод: <b style="color:var(--text-muted)">${v.barcode}</b></span>`:''}
+  </div>` : '';
+  return `<div class="pdl-item">
+    <div class="pdl-head"><div class="pdl-name">${p.name}</div><span class="pdl-code">${p.code}</span></div>
+    <div class="size-chips">${sizes}</div>${meta}
+  </div>`;
+}
+
+function toggleOrder(id) {
+  const el = document.getElementById('oc'+id);
+  if(el) el.classList.toggle('open');
+}
+function updOrder(id, field, val) {
+  const o = DB.orders.find(x=>x.id===id);
+  if(!o) return;
+  const wasOpen = document.getElementById('oc'+id)?.classList.contains('open');
+  o[field]=val;
+  renderStats(); renderOrders(); renderCalendar();
+  // restore open state
+  if(wasOpen) {
+    const el = document.getElementById('oc'+id);
+    if(el) el.classList.add('open');
+  }
+}
+function updStatus(id, val) {
+  const o = DB.orders.find(x=>x.id===id);
+  if(!o) return;
+  o.status = val;
+  renderStats(); renderOrders(); renderCalendar();
+  if(val==='rozkroi') renderWorkshop('rozkroi');
+  if(val==='shveika') renderWorkshop('tsekh');
+  if(val==='closed')  renderArchive();
+}
+
+// ════════════════════════════════════════════════
+//  CALENDAR
+// ════════════════════════════════════════════════
+function renderCalendar() {
+  const now = new Date();
+  document.getElementById('cal-wrap').innerHTML =
+    buildCalMonth(now.getFullYear(), now.getMonth()) +
+    buildCalMonth(now.getFullYear(), now.getMonth()+1);
+}
+
+function buildCalMonth(year, rawMonth) {
+  const d = new Date(year, rawMonth, 1);
+  const yr = d.getFullYear(), mo = d.getMonth();
+  const name = d.toLocaleDateString('uk-UA',{month:'long',year:'numeric'});
+  const firstDow = (new Date(yr,mo,1).getDay()+6)%7;
+  const daysInMo = new Date(yr,mo+1,0).getDate();
+  const td = todayStr();
+  const orders = DB.orders.filter(o=>o.workStart&&o.workEnd&&o.status!=='closed');
+  const dows = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+
+  let html = `<div class="cal-month">
+    <div class="cal-head"><div class="cal-name">${name}</div></div>
+    <div class="cal-grid">
+      <div class="cal-dow">${dows.map(d=>`<span>${d}</span>`).join('')}</div>
+      <div class="cal-days">`;
+
+  for(let i=0;i<firstDow;i++) html+=`<div class="cday empty"></div>`;
+  for(let day=1;day<=daysInMo;day++){
+    const ds = `${yr}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = ds===td;
+    const matched = orders.filter(o=>ds>=o.workStart&&ds<=o.workEnd);
+    const hasTier = matched.some(o=>o.tier);
+    const hasSh   = matched.some(o=>!o.tier);
+    let cls = 'cday';
+    if(isToday) cls+=' today';
+    if(matched.length) cls+=' has-ev';
+    if(hasTier&&hasSh) cls+=' ev-both';
+    else if(hasTier) cls+=' ev-tier';
+    else if(hasSh) cls+=' ev-sh';
+    const tip = matched.map(o=>`${String(o.no).padStart(3,'0')} ${o.name}`).join('\n');
+    const click = matched.length ? `onclick="calClick([${matched.map(o=>o.id).join(',')}])"` : '';
+    html+=`<div class="${cls}" ${click} ${tip?`title="${tip}"`:''}>${day}</div>`;
+  }
+  html+=`</div></div>
+    <div class="cal-legend">
+      <div class="cal-leg-item"><div class="cal-leg-dot leg-tier"></div>TIER</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot leg-sh"></div>Швейка</div>
+    </div>
+  </div>`;
+  return html;
+}
+
+function calClick(ids) {
+  // switch to orders tab and open cards
+  document.querySelector('.tab.active').classList.remove('active');
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-orders').classList.add('active');
+  renderStats(); renderOrders(); renderCalendar();
+  setTimeout(()=>{
+    ids.forEach(id=>{
+      const tr = document.getElementById('oc'+id);
+      if(tr){tr.classList.add('open');tr.scrollIntoView({behavior:'smooth',block:'center'});}
+    });
+  },100);
+}
+
+// ════════════════════════════════════════════════
+//  WORKSHOP (Розкрій / Цех)
+// ════════════════════════════════════════════════
+function renderWorkshop(page) {
+  const status = page==='rozkroi' ? 'rozkroi' : 'shveika';
+  const nextStatus = page==='rozkroi' ? 'shveika' : 'done';
+  const nextLabel  = page==='rozkroi' ? '→ Цех' : '→ Готово';
+  const btnCls     = page==='rozkroi' ? 'btn-orange' : 'btn-green';
+
+  const list = DB.orders
+    .filter(o=>o.status===status)
+    .sort((a,b)=>{ // sort by workStart
+      if(!a.workStart&&!b.workStart) return 0;
+      if(!a.workStart) return 1;
+      if(!b.workStart) return -1;
+      return a.workStart.localeCompare(b.workStart);
+    });
+
+  const container = document.getElementById(page+'-list');
+  if(!list.length){container.innerHTML='<div class="empty-state">Немає замовлень у цьому статусі</div>';return;}
+
+  container.innerHTML = list.map(o=>{
+    const over = isOver(o);
+    return `<div class="ws-order-card" id="ws${page}${o.id}">
+      <div class="ws-order-head" onclick="document.getElementById('ws${page}${o.id}').classList.toggle('open')">
+        <div class="ws-order-no">${String(o.no).padStart(3,'0')}</div>
+        <div class="ws-order-name">${o.name}${o.tier?` <span class="tag-tier">TIER</span>`:''}</div>
+        <div class="ws-order-start">${o.workStart?'🗓 '+fmtDFull(o.workStart):''}</div>
+        <div class="ws-order-chevron">▾</div>
+      </div>
+      <div class="ws-order-body">
+        ${o.products.map(p=>buildWsProd(o, p, nextStatus, nextLabel, btnCls, page)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
+  const vt = VT_PRODUCTS.find(x=>x.id===p.vtId);
+  const v  = vt ? vt.variants[p.variantIdx] : null;
+  const metaId = `meta-${o.id}-${p.code}`;
+
+  const metaFields = v ? [
+    ['Тканина', v.fabric], ['Артикул', v.fabricArt], ['Колір', v.color],
+    ['Штрихкод', v.barcode], ['Брендування', v.brandCode&&v.brandCode!=='-'?v.brandCode+' · '+v.brandMat:'—'],
+  ].map(([l,val])=>`<div class="ws-meta-field"><div class="ws-meta-lbl">${l}</div><div class="ws-meta-val">${val||'—'}</div></div>`).join('') : '';
+
+  const sizeRows = p.sizes.map((s,si)=>{
+    const iid = `done-${o.id}-${p.code}-${si}`;
+    // розкрій показує cut/qty, цех показує done/qty
+    const progress = page==='rozkroi' ? (s.cut||0) : (s.done||0);
+    const fracCls = progress>=s.qty&&s.qty>0 ? 'done-fraction full' : progress>0 ? 'done-fraction partial' : 'done-fraction';
+    const inputLabel = nextStatus==='done' ? 'Зшито' : 'Розкроєно';
+    const remaining = s.qty - progress;
+    return `<tr>
+      <td>${s.sz}</td>
+      <td>${s.sex}</td>
+      <td><span class="${fracCls}">${progress}/${s.qty}</span></td>
+      <td style="display:flex;align-items:center;gap:6px">
+        <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="${inputLabel}…" class="ws-done-input"
+          ${remaining<=0?'disabled':''}>
+        <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},'${p.code}',${si},'${nextStatus}','${page}',document.getElementById('${iid}').value)"
+          ${remaining<=0?'disabled style="opacity:.4"':''}>
+          ${nextLabel}</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="ws-prod-item">
+    <div class="ws-prod-title">
+      <div class="ws-prod-name">${p.name}</div>
+      <span class="ws-prod-code">${p.code}</span>
+      <span class="ws-meta-toggle" onclick="toggleMeta('${metaId}')">▸ деталі</span>
+    </div>
+    <div class="ws-meta" id="${metaId}">${metaFields}</div>
+    <table class="ws-size-table">
+      <thead><tr>
+        <th>Розмір</th><th>Стать</th><th>Готово/Всього</th>
+        <th>Кількість · Дія</th>
+      </tr></thead>
+      <tbody>${sizeRows}</tbody>
+    </table>
+  </div>`;
+}
+
+function toggleMeta(id) {
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('open');
+}
+
+function moveSize(orderId, prodCode, sizeIdx, nextStatus, page, qtyVal) {
+  const o = DB.orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const p = o.products.find(x=>x.code===prodCode);
+  if(!p) return;
+  const s = p.sizes[sizeIdx];
+  if(!s) return;
+
+  const qty = parseInt(qtyVal)||0;
+
+  if(nextStatus==='done') {
+    // Цех → Готово: рахуємо пошиті штуки
+    if(qty > 0) {
+      s.done = Math.min(s.qty, (s.done||0) + qty);
+    } else {
+      s.done = s.qty;
+    }
+    // якщо всі розміри всіх виробів пошиті → замовлення готове
+    const allDone = o.products.every(pr => pr.sizes.every(sz => (sz.done||0) >= sz.qty));
+    if(allDone) o.status = 'done';
+
+  } else if(nextStatus==='shveika') {
+    // Розкрій → Цех: рахуємо розкроєні штуки (поле cut)
+    if(qty > 0) {
+      s.cut = Math.min(s.qty, (s.cut||0) + qty);
+    } else {
+      s.cut = s.qty;
+    }
+    // якщо всі розміри всіх виробів розкроєні → замовлення переходить в цех
+    const allCut = o.products.every(pr => pr.sizes.every(sz => (sz.cut||0) >= sz.qty));
+    if(allCut) o.status = 'shveika';
+  }
+
+  renderStats(); renderOrders(); renderCalendar();
+  renderWorkshop(page);
+  if(page==='rozkroi' && nextStatus==='shveika') renderWorkshop('tsekh');
+}
+
+// ════════════════════════════════════════════════
+//  ARCHIVE
+// ════════════════════════════════════════════════
+function renderArchive() {
+  const closed = DB.orders.filter(o=>o.status==='closed');
+  const el = document.getElementById('archive-list');
+  if(!closed.length){el.innerHTML='<div class="empty-state">Архів порожній</div>';return;}
+
+  const groups = {};
+  closed.forEach(o=>{
+    const d = new Date((o.deadline||o.created)+'T00:00:00');
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const lbl = d.toLocaleDateString('uk-UA',{month:'long',year:'numeric'});
+    if(!groups[key]) groups[key]={lbl, orders:[]};
+    groups[key].orders.push(o);
+  });
+
+  el.innerHTML = Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([k,g])=>`
+    <div class="arch-month" id="am${k}">
+      <div class="arch-month-head" onclick="this.closest('.arch-month').classList.toggle('open')">
+        <div class="arch-month-name">${g.lbl.charAt(0).toUpperCase()+g.lbl.slice(1)}</div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="arch-month-cnt">${g.orders.length} замовлень</div>
+          <div class="arch-chev">▾</div>
+        </div>
+      </div>
+      <div class="arch-month-body">
+        ${g.orders.map(o=>`
+          <div class="arch-order" id="ao${o.id}">
+            <div class="arch-order-head" onclick="this.closest('.arch-order').classList.toggle('open')">
+              <div class="arch-order-no">${String(o.no).padStart(3,'0')}</div>
+              <div class="arch-order-name">${o.name}${o.tier?` <span class="tag-tier">TIER</span>`:''}</div>
+              <div class="arch-order-dl">${fmtDFull(o.deadline)}</div>
+              ${sBadge('closed')}
+              <div class="arch-order-chev">▾</div>
+            </div>
+            <div class="arch-order-body">
+              ${o.products.map(p=>buildProdDetail(p)).join('')}
+              <div style="margin-top:10px;display:flex;gap:8px">
+                <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim)">
+                  Створено: ${fmtDFull(o.created)} · Дедлайн: ${fmtDFull(o.deadline)}
+                  · Виробництво: ${fmtDFull(o.workStart)} → ${fmtDFull(o.workEnd)}
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════
+//  ВИРОБИ TIER
+// ════════════════════════════════════════════════
+let vtProducts = [...VT_PRODUCTS];
+
+function addVtItem() {
+  const name = document.getElementById('vt-name').value.trim();
+  const code = document.getElementById('vt-code').value.trim();
+  const err  = document.getElementById('vt-err');
+  if(!name||!code){err.textContent='❗ Обов\'язкові поля';return;}
+  err.textContent='';
+  vtProducts.push({
+    id:nextVtId++, name, code,
+    variants:[{
+      sex:   document.getElementById('vt-sex').value,
+      fabric:document.getElementById('vt-fabric').value,
+      fabricArt:document.getElementById('vt-art').value,
+      color: document.getElementById('vt-color').value,
+      barcode:document.getElementById('vt-barcode').value,
+      brandCode:document.getElementById('vt-brand-code').value,
+      brandMat: document.getElementById('vt-brand-mat').value,
+    }]
+  });
+  ['vt-name','vt-code','vt-sex','vt-fabric','vt-art','vt-color','vt-barcode','vt-brand-code','vt-brand-mat']
+    .forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  renderVt();
+}
+
+function renderVt() {
+  const el = document.getElementById('vt-list');
+  document.getElementById('vt-count').textContent = vtProducts.length + ' виробів';
+  if(!vtProducts.length){el.innerHTML='<div class="empty-state">Немає виробів</div>';return;}
+  el.innerHTML = vtProducts.map(p=>`
+    <div class="vt-item" id="vti${p.id}">
+      <div class="vt-head" onclick="document.getElementById('vti${p.id}').classList.toggle('open')">
+        <div class="vt-name">${p.name}</div>
+        <span class="vt-cnt">${p.variants.length} вар.</span>
+        <span class="vt-code">${p.code}</span>
+        <div class="vt-head-chev">▾</div>
+      </div>
+      <div class="vt-body">
+        ${p.variants.map(v=>`
+          <div class="variant-row">
+            ${[['Стать',v.sex],['Колір',v.color],['Тканина',v.fabric],['Артикул',v.fabricArt],
+               ['Штрихкод',v.barcode],['Брендування',v.brandCode&&v.brandCode!=='-'?v.brandCode:'—'],['Матеріал бренд.',v.brandMat&&v.brandMat!=='-'?v.brandMat:'—']]
+              .map(([l,val])=>`<div class="vr-field"><div class="vr-lbl">${l}</div><div class="vr-val">${val||'—'}</div></div>`).join('')}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════
+//  ДОВІДНИК
+// ════════════════════════════════════════════════
+function addDirItem() {
+  const type = document.getElementById('dir-type').value;
+  const name = document.getElementById('dir-name').value.trim();
+  const code = document.getElementById('dir-code').value.trim();
+  const err  = document.getElementById('dir-err');
+  if(!name||!code){err.textContent='❗ Назва і код';return;}
+  err.textContent='';
+  const list = DB.directory[type];
+  list.push({id:(list.length?Math.max(...list.map(i=>i.id)):0)+1,
+    name, code,
+    color: document.getElementById('dir-color').value,
+    mat:   document.getElementById('dir-mat').value,
+  });
+  ['dir-name','dir-code','dir-color','dir-mat'].forEach(id=>{document.getElementById(id).value='';});
+  renderDir();
+}
+
+function renderDir() {
+  const el = document.getElementById('dir-sections');
+  let html = '';
+  Object.entries(DB.directory).forEach(([type,items])=>{
+    html+=`<div class="dir-section">
+      <div class="dir-title">${DIR_LABELS[type]}</div>
+      <div class="dir-wrap">
+        <table class="dir-table">
+          <thead><tr><th>Назва</th><th>Код</th><th>Колір</th><th>Матеріал / склад</th></tr></thead>
+          <tbody>`;
+    if(!items.length) html+=`<tr><td colspan="4" style="color:var(--text-dim);padding:10px 12px;font-size:11px">Немає записів</td></tr>`;
+    items.forEach(i=>{
+      html+=`<tr>
+        <td><span class="dtag ${DIR_TAGS[type]}">${i.name}</span></td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">${i.code}</td>
+        <td>${i.color||'—'}</td>
+        <td style="color:var(--text-muted)">${i.mat||'—'}</td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div></div>`;
+  });
+  el.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
+renderStats();
+renderOrders();
+renderCalendar();
+renderVt();
+renderDir();
+</script>
+</body>
+</html>
