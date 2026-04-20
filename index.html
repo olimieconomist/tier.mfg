@@ -1135,27 +1135,26 @@ function buildOrderRow(o) {
     <td class="nodim">${sBadge(dispStatus)}</td>
     <td><div class="chevron">▾</div></td>
   </tr>
-  <tr class="order-detail"><td colspan="6"><div class="detail-cell">
+ <tr class="order-detail"><td colspan="6"><div class="detail-cell">
     ${conflictHtml}${dlWarnHtml}
-    <div class="detail-grid" style="grid-template-columns:1fr 1fr;margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
+    <div style="display:grid;grid-template-columns:100px 100px 1fr 1fr 140px;gap:10px;align-items:end;margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
+      <div class="detail-field">
+        <div class="lbl">Створено</div>
+        <div class="val" style="font-size:12px;padding-top:2px">${fmtDFull(o.created)}</div>
+      </div>
+      <div class="detail-field">
+        <div class="lbl">Дедлайн</div>
+        <div class="val ${dlWarn?'warn':''}  " style="font-size:12px;padding-top:2px">${fmtDFull(o.deadline)}</div>
+      </div>
       <div class="detail-field"><div class="lbl">Початок виробництва</div>
-        <input type="date" value="${o.workStart||''}" onchange="updWorkDate(${o.id},'workStart',this.value,this)" style="max-width:160px">
+        <input type="date" value="${o.workStart||''}" onchange="updWorkDate(${o.id},'workStart',this.value,this)">
       </div>
       <div class="detail-field"><div class="lbl">Кінець виробництва</div>
-        <input type="date" value="${o.workEnd||''}" onchange="updWorkDate(${o.id},'workEnd',this.value,this)" style="max-width:160px">
+        <input type="date" value="${o.workEnd||''}" onchange="updWorkDate(${o.id},'workEnd',this.value,this)">
       </div>
-
-    </div>
-    <div class="detail-grid" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px;align-items:start">
       <div class="detail-field"><div class="lbl">Статус</div>
         <select class="status-sel" onchange="updStatus(${o.id},this.value)">${statusOpts}</select>
       </div>
-      <div class="detail-field"><div class="lbl">Дата створення</div><div class="val">${fmtDFull(o.created)}</div></div>
-      <div class="detail-field"><div class="lbl">Дедлайн</div><div class="val">${fmtDFull(o.deadline)}</div></div>
-    </div>
-    <div class="detail-field" style="margin-top:10px">
-      <div class="lbl">Коментар</div>
-      <textarea placeholder="Коментар до замовлення..." onchange="updOrder(${o.id},'comment',this.value)">${o.comment||''}</textarea>
     </div>
     <div class="prod-detail-list">
       <div class="pdl-title">Вироби</div>
@@ -1235,7 +1234,16 @@ function updStatus(id, val) {
   const o = DB.orders.find(x=>x.id===id);
   if(!o) return;
   o.status = val;
-  if(val==='rozkroi') o.products.forEach(p=>{ if(!p.prodStage) p.prodStage='rozkroi'; });
+  if(val==='rozkroi') {
+    o.products.forEach(p=>{ if(!p.prodStage) p.prodStage='rozkroi'; });
+  }
+  if(val==='shveika') {
+    // При прямому встановленні Цеху — вважаємо що весь розкрій виконано
+    o.products.forEach(p=>{
+      p.prodStage = 'shveika';
+      p.sizes.forEach(s=>{ s.cut = s.cut || s.qty; });
+    });
+  }
   // Зберегти статус і вироби в Sheets
   syncField(o.no, 'status', SLABELS[val]||val);
   syncField(o.no, 'productsJson', JSON.stringify(o.products));
@@ -1396,17 +1404,20 @@ function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
     const progress = page==='rozkroi' ? (s.cut||0) : (s.done||0);
     const fracCls = progress>=s.qty&&s.qty>0 ? 'done-fraction full' : progress>0 ? 'done-fraction partial' : 'done-fraction';
     const inputLabel = nextStatus==='done' ? 'Зшито' : 'Розкроєно';
-    const remaining = s.qty - progress;
-    // В Цеху: кнопка "Готово" недоступна якщо цей розмір ще не повністю розкроєний
-    const notCutYet = page==='tsekh' && (s.cut||0) < s.qty;
-    const isDisabled = remaining <= 0 || notCutYet;
-    const disabledTitle = notCutYet ? `title="Спочатку розкрій всю партію (розкроєно ${s.cut||0}/${s.qty})"` : '';
-    return `<tr${notCutYet ? ' style="opacity:.55"' : ''}>
+    // В Цеху: доступно тільки те що вже розкроєне; якщо cut=0 — нічого не можна
+    const cutSoFar = page==='tsekh' ? (s.cut||0) : s.qty;
+    const remaining = cutSoFar - (s.done||0);
+    const nothingCut = page==='tsekh' && cutSoFar === 0;
+    const isDisabled = remaining <= 0 || nothingCut;
+    const disabledTitle = nothingCut ? `title="Спочатку відправ хоча б частину в розкрій"` : '';
+    const cutInfo = page==='tsekh' && cutSoFar < s.qty
+      ? `<span style="font-size:9px;color:#4f8ef7;margin-left:4px">розкроєно ${cutSoFar}/${s.qty}</span>` : '';
+    return `<tr>
       <td>${s.sz}</td>
       <td>${s.sex}</td>
       <td>
         <span class="${fracCls}">${progress}/${s.qty}</span>
-        ${page==='tsekh' && (s.cut||0) < s.qty ? `<span style="font-size:9px;color:#e74c3c;margin-left:4px">розкроєно ${s.cut||0}/${s.qty}</span>` : ''}
+        ${cutInfo}
       </td>
       <td style="display:flex;align-items:center;gap:6px">
         <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="${inputLabel}…" class="ws-done-input"
@@ -1451,12 +1462,22 @@ function moveSize(orderId, prodCode, sizeIdx, nextStatus, page, qtyVal) {
 
   const qty = parseInt(qtyVal)||0;
 
-  if(nextStatus==='shveika') {
-    // Розкрій → Цех: додаємо кількість розкроєного (обов'язково > 0)
-    if(qty <= 0) { renderWorkshop(page); return; }
-    s.cut = Math.min(s.qty, (s.cut||0) + qty);
-    // Будь-яка кількість cut відкриває виріб в Цеху
-    if(s.cut > 0) p.prodStage = 'shveika';
+if(nextStatus === 'shveika') {
+  // Розкрій → Цех: додаємо кількість розкроєного (обов'язково > 0)
+  if (qty <= 0) { 
+    renderWorkshop(page); 
+    return; 
+  }
+  s.cut = Math.min(s.qty, (s.cut || 0) + qty);
+  // Виріб стає доступним у швейці при будь-якому cut > 0
+  if (s.cut > 0) {
+    p.prodStage = 'shveika';
+  }
+  // Статус замовлення змінюємо ТІЛЬКИ коли все розкроєно
+  if (o.status === 'rozkroi' && s.cut === s.qty) {
+    o.status = 'shveika';
+    syncField(o.no, 'status', SLABELS['shveika']);
+  }
 
   } else if(nextStatus==='done') {
     // Цех → Готово: додаємо ТІЛЬКИ вказану кількість (qty обов'язково > 0)
