@@ -470,6 +470,14 @@ tbody.order-card.open .order-detail{display:table-row}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .section-title{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted)}
 .info-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--text-dim);padding:3px 9px;border:1px solid var(--border);border-radius:20px}
+
+/* ── CONFLICT ── */
+.conflict-msg{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--rd-bg, #2b0d0d);border:1px solid rgba(231,68,60,.35);border-radius:4px;font-family:var(--mono);font-size:11px;color:var(--rd, #e74c3c);margin-top:6px}
+.date-val.conflict-date{color:var(--rd)!important}
+.cday.conflict-day{box-shadow:inset 0 0 0 2px var(--rd);border-radius:3px}
+.conflict-hdr-icon{font-size:13px;margin-left:4px}
+textarea{padding:8px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--tx);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .15s;width:100%;resize:vertical;min-height:60px}
+textarea:focus{border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -488,7 +496,6 @@ tbody.order-card.open .order-detail{display:table-row}
   <button class="tab" onclick="goTab('archive',this)">📦 АРХІВ</button>
   <button class="tab" onclick="goTab('vt',this)">🧠 ВИРОБИ TIER</button>
   <button class="tab" onclick="goTab('directory',this)">📚 ДОВІДНИК</button>
-  <button class="tab" onclick="goTab('guide',this)">📄 ІНСТРУКЦІЯ</button>
 </div>
 
 <!-- ══════════════ ЗАМОВЛЕННЯ ══════════════ -->
@@ -673,325 +680,13 @@ tbody.order-card.open .order-detail{display:table-row}
   <div id="dir-sections"></div>
 </div>
 
-<!-- ══════════════ ІНСТРУКЦІЯ ══════════════ -->
-<div class="page" id="page-guide">
-  <div class="section-header"><div class="section-title">📄 Налаштування Google Sheets + Apps Script</div></div>
-
-  <!-- ── ЧАСТИНА 1: GOOGLE SHEETS ── -->
-  <div style="font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)">
-    ▣ ЧАСТИНА 1 — GOOGLE SHEETS
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 1 · Створити таблицю і листи</div>
-    <ul class="guide-list">
-      <li>Відкрий <strong>sheets.google.com</strong> → «+» → Порожня таблиця. Назви файл: <strong>TIER.MFG</strong></li>
-      <li>Внизу є один лист «Аркуш1» — перейменуй його. Для цього: двічі клікни на назву вкладки → введи <strong>ЗАМОВЛЕННЯ</strong></li>
-      <li>Натисни «+» ще чотири рази і назви листи точно так (включно з пробілами і дужками):<br>
-        <strong>ЗАМОВЛЕННЯ &nbsp;·&nbsp; ВИРОБИ TIER &nbsp;·&nbsp; ДОВІДНИК &nbsp;·&nbsp; АРХІВ</strong>
-      </li>
-    </ul>
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 2 · Лист ЗАМОВЛЕННЯ — структура</div>
-    <div class="formula-block">A1: №   B1: Дата   C1: Назва   D1: Дедлайн   E1: Tier   F1: Статус   G1: Початок   H1: Кінець   I1: Вироби</div>
-    <ul class="guide-list">
-      <li><strong>Колонка A — автонумерація.</strong> Клікни на A2, встав формулу (крапка з комою — бо українська локаль):
-        <div class="formula-block">=ЯКЩО(C2="";"";РЯДОК()-1)</div>
-        Виділи A2 → потягни за кутик донизу до A1000
-      </li>
-      <li><strong>Колонка D — формат дати.</strong> Виділи D2:D1000 → Формат → Число → Дата</li>
-      <li><strong>Колонка G і H — формат дати.</strong> Те саме: Формат → Число → Дата</li>
-      <li><strong>Колонка E — мітка Tier.</strong> Буде «ТАК» або порожньо — нічого окремо не налаштовуй</li>
-      <li><strong>Колонка F — статус.</strong> Виділи F2:F1000 → Дані → Перевірка даних → Додати правило → Розкривний список → впиши через кому:
-        <div class="formula-block">Не почато,Розкрій,Цех,Готово,Закрито</div>
-      </li>
-      <li><strong>Колонка I — вироби у форматі JSON.</strong> Заповнюється автоматично з HTML — не чіпай вручну</li>
-    </ul>
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 3 · Лист АРХІВ — структура</div>
-    <ul class="guide-list">
-      <li>Той самий рядок заголовків що і в ЗАМОВЛЕННЯ — скопіюй рядок 1 з листа ЗАМОВЛЕННЯ і встав тут</li>
-      <li>Дані сюди потрапляють автоматично з HTML коли замовлення закривається</li>
-    </ul>
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 4 · Умовне форматування листа ЗАМОВЛЕННЯ (за бажанням)</div>
-    <ul class="guide-list">
-      <li>Виділи рядки A2:I1000 → Формат → Умовне форматування → Додати правило</li>
-      <li>В полі «Формула» — <strong>увага: крапка з комою, бо українська локаль</strong></li>
-      <li><strong>Зелений (Готово):</strong> <div class="formula-block">=$F2="Готово"</div> Колір фону: #0d2b1a · Текст: #2ecc71</li>
-      <li><strong>Жовтий (Цех):</strong> <div class="formula-block">=$F2="Цех"</div> Фон: #2a2208 · Текст: #f5c518</li>
-      <li><strong>Помаранчевий (Розкрій):</strong> <div class="formula-block">=$F2="Розкрій"</div> Фон: #2a1505 · Текст: #f97316</li>
-      <li><strong>Червоний (протерміновані):</strong> <div class="formula-block">=І($D2&lt;СЬОГОДНІ();$F2&lt;&gt;"Готово";$F2&lt;&gt;"Закрито")</div> Фон: #2b0d0d · Текст: #e74c3c</li>
-      <li>Порядок правил: протерміновані → зверху (вищий пріоритет)</li>
-    </ul>
-  </div>
-
-  <!-- ── ЧАСТИНА 2: APPS SCRIPT ── -->
-  <div style="font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">
-    ▣ ЧАСТИНА 2 — GOOGLE APPS SCRIPT (API)
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 5 · Відкрити редактор Apps Script</div>
-    <ul class="guide-list">
-      <li>У Google Sheets відкрий меню <strong>Розширення → Apps Script</strong> (або Extensions → Apps Script якщо інтерфейс англійський)</li>
-      <li>Відкриється нова вкладка з редактором. Видали весь вміст файлу <strong>Код.gs</strong> (Ctrl+A → Delete)</li>
-      <li>Скопіюй весь код нижче і встав його (Ctrl+V)</li>
-      <li>Знайди перший рядок <code>const SS_ID = "ВАШ_ID_ТУТА"</code> і заміни <code>ВАШ_ID_ТУТА</code> на ID своєї таблиці</li>
-      <li>ID таблиці — це частина URL між <code>/d/</code> і <code>/edit</code>:<br>
-        <div class="formula-block">https://docs.google.com/spreadsheets/d/<span style="color:var(--yellow)">1BxiMVs0XRA5nFMdKvBdBZjgmUUqpt</span>/edit
-                                                                            ↑ це і є ID — копіюй тільки цю частину</div>
-      </li>
-      <li>Натисни <strong>💾 Зберегти</strong> (або Ctrl+S)</li>
-    </ul>
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 6 · Код Apps Script — вставити повністю</div>
-    <div class="formula-block"><span style="color:var(--text-dim)">// ═══════════════════════════════════════════════
-// TIER.MFG — Apps Script API
-// Вставити повністю в Код.gs, замінивши весь вміст
-// ═══════════════════════════════════════════════</span>
-
-<span style="color:var(--yellow)">const SS_ID = "ВАШ_ID_ТУТА";</span> <span style="color:var(--text-dim)">// ← замінити на ID своєї таблиці</span>
-const SHEET_ORDERS  = "ЗАМОВЛЕННЯ";
-const SHEET_ARCHIVE = "АРХІВ";
-
-<span style="color:var(--text-dim)">// ── CORS-заголовки для запитів з браузера ──</span>
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST",
-    "Access-Control-Allow-Headers": "Content-Type"
-  };
-}
-
-function makeResponse(data) {
-  const output = ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-  return output;
-}
-
-<span style="color:var(--text-dim)">// ── GET: читання даних ──
-// Перевірка: e може бути undefined якщо запускати вручну в редакторі.
-// Через браузер (після деплою) — завжди є.</span>
-function doGet(e) {
-  try {
-    const action = (e &amp;&amp; e.parameter) ? e.parameter.action : "";
-    const ss = SpreadsheetApp.openById(SS_ID);
-
-    if (action === "getOrders") {
-      return makeResponse(readSheet(ss, SHEET_ORDERS));
-    }
-    if (action === "getArchive") {
-      return makeResponse(readSheet(ss, SHEET_ARCHIVE));
-    }
-
-    <span style="color:var(--text-dim)">// Якщо action невідомий — повернути порожній масив</span>
-    return makeResponse([]);
-
-  } catch (err) {
-    return makeResponse({ error: err.toString() });
-  }
-}
-
-<span style="color:var(--text-dim)">// ── POST: запис даних ──</span>
-function doPost(e) {
-  try {
-    const payload = JSON.parse(e.postData.contents);
-    const ss = SpreadsheetApp.openById(SS_ID);
-    const action = payload.action;
-
-    if (action === "addOrder") {
-      const sh = ss.getSheetByName(SHEET_ORDERS);
-      const lastNo = getLastOrderNo(sh);
-      sh.appendRow([
-        lastNo + 1,
-        payload.created,
-        payload.name,
-        payload.deadline,
-        payload.tier ? "ТАК" : "",
-        "Не почато",
-        "",
-        "",
-        payload.productsJson
-      ]);
-      return makeResponse({ ok: true, no: lastNo + 1 });
-    }
-
-    if (action === "updateOrder") {
-      const sh = ss.getSheetByName(SHEET_ORDERS);
-      const row = findRowByNo(sh, payload.no);
-      if (!row) return makeResponse({ ok: false, error: "not found" });
-
-      <span style="color:var(--text-dim)">// Колонки: A=1(№) B=2(Дата) C=3(Назва) D=4(Дедлайн) E=5(Tier)
-      //          F=6(Статус) G=7(Початок) H=8(Кінець) I=9(Вироби)</span>
-      const colMap = { status: 6, workStart: 7, workEnd: 8, productsJson: 9 };
-      const col = colMap[payload.field];
-      if (col) sh.getRange(row, col).setValue(payload.value);
-      return makeResponse({ ok: true });
-    }
-
-    if (action === "closeOrder") {
-      const sh = ss.getSheetByName(SHEET_ORDERS);
-      const row = findRowByNo(sh, payload.no);
-      if (!row) return makeResponse({ ok: false, error: "not found" });
-
-      <span style="color:var(--text-dim)">// Оновити статус на Закрито, потім скопіювати в АРХІВ і видалити</span>
-      sh.getRange(row, 6).setValue("Закрито");
-      const rowData = sh.getRange(row, 1, 1, 9).getValues()[0];
-      const archSh = ss.getSheetByName(SHEET_ARCHIVE);
-      archSh.appendRow(rowData);
-      sh.deleteRow(row);
-      return makeResponse({ ok: true });
-    }
-
-    return makeResponse({ ok: false, error: "unknown action" });
-
-  } catch (err) {
-    return makeResponse({ error: err.toString() });
-  }
-}
-
-<span style="color:var(--text-dim)">// ── Допоміжні функції ──</span>
-
-function readSheet(ss, sheetName) {
-  const sh = ss.getSheetByName(sheetName);
-  if (!sh) return [];
-  const data = sh.getDataRange().getValues();
-  if (data.length < 2) return [];
-  const headers = data[0];
-  return data.slice(1)
-    .filter(r => r[0] !== "" &amp;&amp; r[0] !== null)
-    .map(r => {
-      const obj = {};
-      headers.forEach((h, i) => {
-        <span style="color:var(--text-dim)">// Дати перетворюємо в рядок формату YYYY-MM-DD</span>
-        if (r[i] instanceof Date) {
-          obj[h] = Utilities.formatDate(r[i], Session.getScriptTimeZone(), "yyyy-MM-dd");
-        } else {
-          obj[h] = r[i];
-        }
-      });
-      return obj;
-    });
-}
-
-function getLastOrderNo(sh) {
-  const data = sh.getDataRange().getValues();
-  if (data.length < 2) return 0;
-  let max = 0;
-  for (let i = 1; i &lt; data.length; i++) {
-    const n = parseInt(data[i][0]);
-    if (!isNaN(n) &amp;&amp; n > max) max = n;
-  }
-  return max;
-}
-
-function findRowByNo(sh, no) {
-  const data = sh.getDataRange().getValues();
-  for (let i = 1; i &lt; data.length; i++) {
-    if (String(data[i][0]) === String(no)) return i + 1;
-  }
-  return null;
-}</div>
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 7 · Опублікувати як веб-застосунок (Deploy)</div>
-    <ul class="guide-list">
-      <li>В редакторі Apps Script натисни синю кнопку <strong>«Розгорнути»</strong> (або Deploy) → <strong>«Нове розгортання»</strong></li>
-      <li>У вікні що відкрилось: натисни шестерінку ⚙️ поруч з «Тип» → обери <strong>«Веб-застосунок»</strong></li>
-      <li>Заповни поля:
-        <div class="formula-block">Опис:            TIER.MFG API (або будь-що)
-Виконувати як:   Я (your@gmail.com)
-Хто має доступ:  Усі  ← обов'язково, інакше HTML не зможе звертатись</div>
-      </li>
-      <li>Натисни <strong>«Розгорнути»</strong> → Google попросить авторизацію → натисни «Авторизувати доступ» → вибери свій Google-акаунт → «Додатково» → «Перейти до TIER.MFG (небезпечно)» → «Дозволити»</li>
-      <li>Скопіюй URL який з'явиться — він виглядає так:
-        <div class="formula-block">https://script.google.com/macros/s/<span style="color:var(--yellow)">AKfycbXXXXXXXXXXXXXXXXXXXX</span>/exec</div>
-      </li>
-      <li style="color:var(--red)">⚠️ Важливо: при будь-якій зміні коду — <strong>Розгорнути → Нове розгортання</strong> (не «Керувати розгортаннями» і не «Редагувати»). Інакше зміни не застосуються.</li>
-    </ul>
-  </div>
-
-  <!-- ── ЧАСТИНА 3: HTML + GITHUB ── -->
-  <div style="font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin:24px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border)">
-    ▣ ЧАСТИНА 3 — ПІДКЛЮЧЕННЯ HTML І GITHUB PAGES
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 8 · Прописати API URL в HTML файлі</div>
-    <ul class="guide-list">
-      <li>Відкрий HTML файл у будь-якому текстовому редакторі (VS Code, Notepad++, навіть звичайний Блокнот)</li>
-      <li>Знайди рядок (він близько на початку тегу &lt;script&gt;):
-        <div class="formula-block">const API_URL = null;</div>
-      </li>
-      <li>Заміни <code>null</code> на URL з кроку 7 в лапках:
-        <div class="formula-block">const API_URL = "https://script.google.com/macros/s/AKfycbXXXX.../exec";</div>
-      </li>
-      <li>Збережи файл (Ctrl+S)</li>
-      <li>Відкрий HTML в браузері (двічі клікни на файл) — при першому завантаженні дані підтягнуться з Google Sheets</li>
-    </ul>
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 9 · Розмістити на GitHub Pages (безкоштовний хостинг)</div>
-    <ul class="guide-list">
-      <li>Якщо немає акаунту — зареєструйся на <strong>github.com</strong> (безкоштовно)</li>
-      <li>Після входу натисни <strong>«+»</strong> у правому верхньому куті → <strong>«New repository»</strong></li>
-      <li>Заповни:
-        <div class="formula-block">Repository name:  tier-mfg   (або будь-яка назва без пробілів)
-Visibility:       Public      ← обов'язково Public для GitHub Pages
-</div>
-      </li>
-      <li>Натисни <strong>«Create repository»</strong></li>
-      <li>На сторінці репозиторію натисни <strong>«uploading an existing file»</strong> → перетягни свій HTML файл → натисни <strong>«Commit changes»</strong></li>
-      <li><strong>Важливо: перейменуй файл на <code>index.html</code></strong> — тоді GitHub Pages відкриватиме його за замовчуванням</li>
-      <li>Тепер увімкни GitHub Pages: <strong>Settings → Pages → Source → Deploy from a branch → main → / (root) → Save</strong></li>
-      <li>Через ~1 хвилину твій сайт буде доступний за адресою:
-        <div class="formula-block">https://<span style="color:var(--yellow)">твій_нікнейм</span>.github.io/<span style="color:var(--yellow)">tier-mfg</span>/</div>
-      </li>
-      <li>Щоб оновити файл на GitHub: відкрий репозиторій → клікни на <code>index.html</code> → іконка олівця ✏️ → встав новий вміст → «Commit changes»</li>
-    </ul>
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">Крок 10 · Перевірка що все працює</div>
-    <ul class="guide-list">
-      <li>Відкрий сайт на GitHub Pages → вкладка «Замовлення» має завантажити дані з Google Sheets (якщо вони є)</li>
-      <li>Створи тестове замовлення → відкрий Google Sheets → переконайся що новий рядок з'явився в листі ЗАМОВЛЕННЯ</li>
-      <li>Зміни статус в HTML → перевір що статус змінився в колонці F таблиці</li>
-      <li>Якщо дані не підтягуються — відкрий консоль браузера (F12 → Console) і подивись на помилки. Найчастіша: CORS або неправильний URL</li>
-      <li>Якщо бачиш помилку CORS — переконайся що в Apps Script «Хто має доступ» = <strong>Усі</strong>, і зроби нове розгортання</li>
-    </ul>
-  </div>
-
-  <div class="guide-card">
-    <div class="guide-title">⚠️ Типові помилки і рішення</div>
-    <ul class="guide-list">
-      <li><strong>TypeError: Cannot read properties of undefined (reading 'parameter')</strong> — ця помилка виникає коли запускаєш doGet вручну в редакторі Apps Script. Це нормально — функція очікує запит з браузера. Через URL після деплою все працює</li>
-      <li><strong>Дані не зберігаються після перезавантаження</strong> — означає що API_URL = null. Перевір що замінив на правильний URL</li>
-      <li><strong>Формули у Sheets не працюють</strong> — перевір що використовуєш крапку з комою (;) як роздільник, а не кому. В українській локалі Google Sheets роздільник — крапка з комою</li>
-      <li><strong>Після зміни коду Apps Script нічого не змінилось</strong> — зроби «Нове розгортання» (не редагуй існуюче). URL при цьому зміниться — оновіть API_URL в HTML</li>
-      <li><strong>GitHub Pages показує 404</strong> — переконайся що файл називається <code>index.html</code> (не TIER_MFG_final.html), і що Pages увімкнено в Settings</li>
-    </ul>
-  </div>
-</div>
 
 <script>
 // ════════════════════════════════════════════════
 //  API — підключення до Google Apps Script
 //  Замініть URL нижче на свій після деплою
 // ════════════════════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbziW5P49aiwwln3UEMKQZaIQrfdhEy4UFdvA1CdAfv-2dSa71jQZ9QiIWSt486wPdLA/exec"; // ← вставте URL виду https://script.google.com/macros/s/.../exec
+const API_URL = "https://script.google.com/macros/s/AKfycbyr1aQyiorOA4zyJJ2SUuP8ajZ5NMB64PMK-5f9X6hB9N53nFK6wI1zOt44kfq-t_NU/exec"; // ← вставте URL виду https://script.google.com/macros/s/.../exec
 
 async function apiGet(action) {
   if(!API_URL) return null;
@@ -1016,7 +711,7 @@ async function apiPost(payload) {
 function safeJson(str) { try { return JSON.parse(str||'[]'); } catch { return []; } }
 
 async function loadFromSheets() {
-  if(!API_URL) { localInit(); return; }
+  if(!API_URL) { console.warn("API_URL не вказано"); return; }
   try {
     const [rawOrders, rawArchive, rawVt, rawDir] = await Promise.all([
       apiGet('getOrders'), apiGet('getArchive'),
@@ -1042,6 +737,7 @@ async function loadFromSheets() {
       workStart: String(o['Початок'] ||''),
       workEnd:   String(o['Кінець']  ||''),
       products:  safeJson(o['Вироби']),
+      comment:   String(o['Коментар']||''),
       closed,
     });
 
@@ -1056,7 +752,6 @@ async function loadFromSheets() {
     renderArchive(); renderVt(); renderDir();
   } catch(err) {
     console.error('loadFromSheets:', err);
-    localInit();
   }
 }
 
@@ -1066,6 +761,7 @@ async function saveOrderToSheets(order) {
     created: order.created, name: order.name, deadline: order.deadline,
     tier: order.tier, workStart: order.workStart||'', workEnd: order.workEnd||'',
     productsJson: JSON.stringify(order.products),
+    comment: order.comment||'',
   });
 }
 
@@ -1378,12 +1074,17 @@ function buildOrderRow(o) {
   const dispStatus = over ? 'overdue' : o.status;
   const s = o.status;
   const tierTag = o.tier ? `<span class="tag-tier">TIER</span>` : '';
-  const dlWarn = (o.workEnd && o.deadline && o.deadline < o.workEnd) ? '<span class="warn-icon">⚠️</span>' : '';
-  const dlCls = (dlWarn||over) ? 'date-val warn' : 'date-val';
 
-  // conflict
-  const conflict = DB.orders.some(x=> x.id!==o.id && x.workStart && x.workEnd && o.workStart && o.workEnd &&
-    x.workStart <= o.workEnd && x.workEnd >= o.workStart);
+  // Deadline warning: дедлайн раніше кінця виробництва
+  const dlWarn = (o.workEnd && o.deadline && o.deadline < o.workEnd);
+  // Conflict: перетин з іншими замовленнями
+  const conflicts = getConflicts(o);
+  const hasConflict = conflicts.length > 0;
+
+  // В заголовку: підсвічуємо дати якщо проблема
+  const dlCls = (dlWarn || over) ? 'date-val warn' : 'date-val';
+  const warnIcon = (dlWarn || hasConflict) ? '<span class="conflict-hdr-icon" title="Проблема з датами">⚠️</span>' : '';
+  const wsDtCls = hasConflict ? 'date-val conflict-date' : 'date-val';
 
   let rowClass = `order-card s-${s}`;
   if(over) rowClass += ' is-overdue';
@@ -1392,33 +1093,34 @@ function buildOrderRow(o) {
   const statusOpts = ['new','rozkroi','shveika','done','closed'].map(sv=>
     `<option value="${sv}" ${o.status===sv?'selected':''}>${SLABELS[sv]}</option>`).join('');
 
-  // size summary for header
-  const sizeSummary = o.products.slice(0,2).map(p=>
-    `<span style="font-size:10px;color:var(--text-dim)">${p.name}</span>`).join(', ') +
-    (o.products.length>2?` +${o.products.length-2}`:'');
+  // Conflict message HTML
+  const conflictHtml = hasConflict
+    ? `<div class="conflict-msg">⚠️ Перетин дат з: ${conflicts.map(c=>`<b>${c.no.toString().padStart(3,'0')} ${c.name}</b>`).join(', ')}</div>` : '';
+  const dlWarnHtml = dlWarn
+    ? `<div class="conflict-msg">⚠️ Дедлайн раніше за дату кінця виробництва</div>` : '';
 
   return `
 <tbody class="${rowClass}" id="oc${o.id}">
   <tr class="order-head" onclick="toggleOrder(${o.id})">
     <td><span class="order-no">${String(o.no).padStart(3,'0')}</span></td>
-    <td class="nodim">${o.name} ${tierTag}${conflict?'<span class="warn-icon" title="Перетин дат">⚠️</span>':''}</td>
+    <td class="nodim">${o.name} ${tierTag}</td>
     <td>
       <div class="date-group">
         <div class="date-lbl">Дата · Дедлайн</div>
         <div style="display:flex;align-items:center;gap:4px">
           <span class="date-val">${fmtD(o.created)}</span>
           <span class="date-sep">→</span>
-          <span class="${dlCls}">${fmtD(o.deadline)}${dlWarn}</span>
+          <span class="${dlCls}">${fmtD(o.deadline)}${dlWarn?'⚠️':''}</span>
         </div>
       </div>
     </td>
     <td>
       <div class="date-group">
-        <div class="date-lbl">Виробництво</div>
+        <div class="date-lbl">Виробництво${warnIcon}</div>
         <div style="display:flex;align-items:center;gap:4px">
-          <span class="date-val">${o.workStart?fmtD(o.workStart):'—'}</span>
+          <span class="${wsDtCls}">${o.workStart?fmtD(o.workStart):'—'}</span>
           <span class="date-sep">→</span>
-          <span class="date-val">${o.workEnd?fmtD(o.workEnd):'—'}</span>
+          <span class="${wsDtCls}">${o.workEnd?fmtD(o.workEnd):'—'}</span>
         </div>
       </div>
     </td>
@@ -1426,17 +1128,34 @@ function buildOrderRow(o) {
     <td><div class="chevron">▾</div></td>
   </tr>
   <tr class="order-detail"><td colspan="6"><div class="detail-cell">
-    <div class="detail-grid">
+    ${conflictHtml}${dlWarnHtml}
+    <div class="detail-grid" style="grid-template-columns:repeat(3,1fr);margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
       <div class="detail-field"><div class="lbl">Початок виробництва</div>
-        <input type="date" value="${o.workStart||''}" onchange="updOrder(${o.id},'workStart',this.value)" style="max-width:160px">
+        <input type="date" value="${o.workStart||''}" onchange="updWorkDate(${o.id},'workStart',this.value,this)" style="max-width:160px">
       </div>
       <div class="detail-field"><div class="lbl">Кінець виробництва</div>
-        <input type="date" value="${o.workEnd||''}" onchange="updOrder(${o.id},'workEnd',this.value)" style="max-width:160px">
+        <input type="date" value="${o.workEnd||''}" onchange="updWorkDate(${o.id},'workEnd',this.value,this)" style="max-width:160px">
+      </div>
+      <div class="detail-field"><div class="lbl">Дедлайн</div>
+        <input type="date" value="${o.deadline||''}" onchange="updOrder(${o.id},'deadline',this.value)" style="max-width:160px">
+      </div>
+    </div>
+    <div class="detail-grid" style="grid-template-columns:auto 1fr 1fr;margin-top:10px;align-items:start">
+      <div class="detail-field">
+        <div class="lbl">TIER</div>
+        <label class="tier-check" style="margin-top:4px">
+          <input type="checkbox" ${o.tier?'checked':''} onchange="updTier(${o.id},this.checked)">
+          <span>⬡ TIER</span>
+        </label>
       </div>
       <div class="detail-field"><div class="lbl">Статус</div>
         <select class="status-sel" onchange="updStatus(${o.id},this.value)">${statusOpts}</select>
       </div>
       <div class="detail-field"><div class="lbl">Дата створення</div><div class="val">${fmtDFull(o.created)}</div></div>
+    </div>
+    <div class="detail-field" style="margin-top:10px">
+      <div class="lbl">Коментар</div>
+      <textarea placeholder="Коментар до замовлення..." onchange="updOrder(${o.id},'comment',this.value)">${o.comment||''}</textarea>
     </div>
     <div class="prod-detail-list">
       <div class="pdl-title">Вироби</div>
@@ -1472,12 +1191,43 @@ function toggleOrder(id) {
   const el = document.getElementById('oc'+id);
   if(el) el.classList.toggle('open');
 }
+
+// Повертає список замовлень що перетинаються за датами з o
+function getConflicts(o) {
+  if(!o.workStart || !o.workEnd) return [];
+  return DB.orders.filter(x =>
+    x.id !== o.id && x.workStart && x.workEnd && !['done','closed'].includes(x.status) &&
+    x.workStart <= o.workEnd && x.workEnd >= o.workStart
+  );
+}
+
+// Оновлення дат виробництва з перевіркою конфліктів
+function updWorkDate(id, field, val, inputEl) {
+  const o = DB.orders.find(x=>x.id===id);
+  if(!o) return;
+  const wasOpen = document.getElementById('oc'+id)?.classList.contains('open');
+  o[field] = val;
+  syncField(o.no, field, val);
+  renderStats(); renderOrders(); renderCalendar();
+  if(wasOpen) { const el=document.getElementById('oc'+id); if(el){ el.classList.add('open'); } }
+}
+
 function updOrder(id, field, val) {
   const o = DB.orders.find(x=>x.id===id);
   if(!o) return;
   const wasOpen = document.getElementById('oc'+id)?.classList.contains('open');
   o[field]=val;
-  syncField(o.no, field, val); // зберегти в Sheets
+  syncField(o.no, field, val); // зберегти в Sheets (comment → колонка J)
+  renderStats(); renderOrders(); renderCalendar();
+  if(wasOpen) { const el=document.getElementById('oc'+id); if(el) el.classList.add('open'); }
+}
+
+function updTier(id, checked) {
+  const o = DB.orders.find(x=>x.id===id);
+  if(!o) return;
+  const wasOpen = document.getElementById('oc'+id)?.classList.contains('open');
+  o.tier = checked;
+  syncField(o.no, 'tier', checked ? 'ТАК' : '');
   renderStats(); renderOrders(); renderCalendar();
   if(wasOpen) { const el=document.getElementById('oc'+id); if(el) el.classList.add('open'); }
 }
@@ -1529,12 +1279,19 @@ function buildCalMonth(year, rawMonth) {
     const matched = orders.filter(o=>ds>=o.workStart&&ds<=o.workEnd);
     const hasTier = matched.some(o=>o.tier);
     const hasSh   = matched.some(o=>!o.tier);
+
+    // Перевірка конфліктів: чи є на цей день більше одного замовлення
+    // або є замовлення що конфліктує з іншим
+    const hasConflict = matched.length > 1 || matched.some(o=>getConflicts(o).length>0);
+
     let cls = 'cday';
     if(isToday) cls+=' today';
     if(matched.length) cls+=' has-ev';
     if(hasTier&&hasSh) cls+=' ev-both';
     else if(hasTier) cls+=' ev-tier';
     else if(hasSh) cls+=' ev-sh';
+    if(hasConflict) cls+=' conflict-day';
+
     const tip = matched.map(o=>`${String(o.no).padStart(3,'0')} ${o.name}`).join('\n');
     const click = matched.length ? `onclick="calClick([${matched.map(o=>o.id).join(',')}])"` : '';
     html+=`<div class="${cls}" ${click} ${tip?`title="${tip}"`:''}>${day}</div>`;
@@ -1684,20 +1441,20 @@ function moveSize(orderId, prodCode, sizeIdx, nextStatus, page, qtyVal) {
   const qty = parseInt(qtyVal)||0;
 
   if(nextStatus==='shveika') {
-    // Розкрій → будь-яка кількість розкроєного відразу відкриває виріб в Цеху
-    s.cut = Math.min(s.qty, (s.cut||0) + (qty > 0 ? qty : s.qty - (s.cut||0)));
+    // Розкрій → Цех: додаємо кількість розкроєного (обов'язково > 0)
+    if(qty <= 0) { renderWorkshop(page); return; }
+    s.cut = Math.min(s.qty, (s.cut||0) + qty);
+    // Будь-яка кількість cut відкриває виріб в Цеху
     if(s.cut > 0) p.prodStage = 'shveika';
-    // Замовлення відображається в Цеху якщо хоч 1 виріб має prodStage='shveika'
-    const anyShveika = o.products.some(pr => pr.prodStage === 'shveika');
-    if(anyShveika && o.status === 'rozkroi') o.status = 'rozkroi'; // залишається в обох
 
   } else if(nextStatus==='done') {
-    // Цех → будь-яка кількість зшитого рахується
-    s.done = Math.min(s.qty, (s.done||0) + (qty > 0 ? qty : s.qty - (s.done||0)));
-    // Виріб "готовий" якщо всі розміри зшиті
+    // Цех → Готово: додаємо ТІЛЬКИ вказану кількість (qty обов'язково > 0)
+    if(qty <= 0) { renderWorkshop(page); return; }
+    s.done = Math.min(s.qty, (s.done||0) + qty);
+    // Виріб "готовий" тільки якщо ВСІ розміри зшиті повністю
     const allSizesDone = p.sizes.every(sz => (sz.done||0) >= sz.qty);
     if(allSizesDone) p.prodStage = 'done';
-    // Замовлення "готове" якщо ВСІ вироби готові
+    // Замовлення "готове" тільки якщо ВСІ вироби готові
     const allDone = o.products.every(pr => pr.prodStage === 'done');
     if(allDone) o.status = 'done';
   }
@@ -1863,14 +1620,8 @@ function renderDir() {
 }
 
 // ════════════════════════════════════════════════
-//  INIT — автовизначення режиму
+//  INIT
 // ════════════════════════════════════════════════
-function localInit() {
-  renderStats(); renderOrders(); renderCalendar();
-  renderVt(); renderDir();
-}
-
-// Завантажуємо дані — якщо API_URL вказано, беремо з Sheets, інакше демо
 loadFromSheets();
 </script>
 </body>
