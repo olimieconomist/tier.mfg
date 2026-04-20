@@ -472,9 +472,9 @@ tbody.order-card.open .order-detail{display:table-row}
 .info-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--text-dim);padding:3px 9px;border:1px solid var(--border);border-radius:20px}
 
 /* ── CONFLICT ── */
-.conflict-msg{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--rd-bg, #2b0d0d);border:1px solid rgba(231,68,60,.35);border-radius:4px;font-family:var(--mono);font-size:11px;color:var(--rd, #e74c3c);margin-top:6px}
-.date-val.conflict-date{color:var(--rd)!important}
-.cday.conflict-day{box-shadow:inset 0 0 0 2px var(--rd);border-radius:3px}
+.conflict-msg{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#2b0d0d;border:1px solid rgba(231,68,60,.35);border-radius:4px;font-family:var(--mono);font-size:11px;color:#e74c3c;margin-top:6px}
+.date-val.conflict-date{color:#e74c3c!important;font-weight:500}
+.cday.conflict-day{box-shadow:inset 0 0 0 2px #e74c3c!important;color:#fff}
 .conflict-hdr-icon{font-size:13px;margin-left:4px}
 textarea{padding:8px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--tx);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .15s;width:100%;resize:vertical;min-height:60px}
 textarea:focus{border-color:var(--accent)}
@@ -543,6 +543,12 @@ textarea:focus{border-color:var(--accent)}
           <div id="prod-container"></div>
           <div class="row" style="margin-top:6px">
             <button class="btn-add-prod" onclick="addProdBlock()">+ Додати виріб</button>
+          </div>
+          <div class="form-row" style="margin-top:10px">
+            <div class="fg">
+              <label class="lbl">Коментар (необов'язково)</label>
+              <textarea id="f-comment" placeholder="Коментар до замовлення..." style="min-height:48px"></textarea>
+            </div>
           </div>
           <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
           <div class="row">
@@ -1016,7 +1022,8 @@ function submitOrder() {
     id:nextOrderId++, no:nextOrderNo++,
     created:todayStr(), name, deadline,
     tier: document.getElementById('ch-tier').checked,
-    status:'new', workStart:'', workEnd:'', products
+    status:'new', workStart:'', workEnd:'', products,
+    comment: document.getElementById('f-comment')?.value.trim()||''
   };
   DB.orders.unshift(newOrder);
   saveOrderToSheets(newOrder); // зберегти в Sheets
@@ -1025,7 +1032,7 @@ function submitOrder() {
 }
 
 function resetForm(){
-  ['f-name','f-deadline'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['f-name','f-deadline','f-comment'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';}); 
   document.getElementById('ch-tier').checked=false;
   document.getElementById('prod-container').innerHTML='';
   document.getElementById('form-err').textContent='';
@@ -1116,11 +1123,12 @@ function buildOrderRow(o) {
     </td>
     <td>
       <div class="date-group">
-        <div class="date-lbl">Виробництво${warnIcon}</div>
+        <div class="date-lbl">Виробництво</div>
         <div style="display:flex;align-items:center;gap:4px">
           <span class="${wsDtCls}">${o.workStart?fmtD(o.workStart):'—'}</span>
           <span class="date-sep">→</span>
           <span class="${wsDtCls}">${o.workEnd?fmtD(o.workEnd):'—'}</span>
+          ${warnIcon}
         </div>
       </div>
     </td>
@@ -1129,29 +1137,21 @@ function buildOrderRow(o) {
   </tr>
   <tr class="order-detail"><td colspan="6"><div class="detail-cell">
     ${conflictHtml}${dlWarnHtml}
-    <div class="detail-grid" style="grid-template-columns:repeat(3,1fr);margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
+    <div class="detail-grid" style="grid-template-columns:1fr 1fr;margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
       <div class="detail-field"><div class="lbl">Початок виробництва</div>
         <input type="date" value="${o.workStart||''}" onchange="updWorkDate(${o.id},'workStart',this.value,this)" style="max-width:160px">
       </div>
       <div class="detail-field"><div class="lbl">Кінець виробництва</div>
         <input type="date" value="${o.workEnd||''}" onchange="updWorkDate(${o.id},'workEnd',this.value,this)" style="max-width:160px">
       </div>
-      <div class="detail-field"><div class="lbl">Дедлайн</div>
-        <input type="date" value="${o.deadline||''}" onchange="updOrder(${o.id},'deadline',this.value)" style="max-width:160px">
-      </div>
+
     </div>
-    <div class="detail-grid" style="grid-template-columns:auto 1fr 1fr;margin-top:10px;align-items:start">
-      <div class="detail-field">
-        <div class="lbl">TIER</div>
-        <label class="tier-check" style="margin-top:4px">
-          <input type="checkbox" ${o.tier?'checked':''} onchange="updTier(${o.id},this.checked)">
-          <span>⬡ TIER</span>
-        </label>
-      </div>
+    <div class="detail-grid" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px;align-items:start">
       <div class="detail-field"><div class="lbl">Статус</div>
         <select class="status-sel" onchange="updStatus(${o.id},this.value)">${statusOpts}</select>
       </div>
       <div class="detail-field"><div class="lbl">Дата створення</div><div class="val">${fmtDFull(o.created)}</div></div>
+      <div class="detail-field"><div class="lbl">Дедлайн</div><div class="val">${fmtDFull(o.deadline)}</div></div>
     </div>
     <div class="detail-field" style="margin-top:10px">
       <div class="lbl">Коментар</div>
@@ -1386,23 +1386,33 @@ function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
     ['Тканина', v.fabric], ['Артикул', v.fabricArt], ['Колір', v.color],
     ['Штрихкод', v.barcode], ['Брендування', v.brandCode&&v.brandCode!=='-'?v.brandCode+' · '+v.brandMat:'—'],
   ].map(([l,val])=>`<div class="ws-meta-field"><div class="ws-meta-lbl">${l}</div><div class="ws-meta-val">${val||'—'}</div></div>`).join('') : '';
+  const commentHtml = o.comment
+    ? `<div style="padding:6px 0 2px;font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase">Коментар</div>
+       <div style="font-family:var(--mono);font-size:11px;color:var(--text-muted);padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;margin-bottom:6px">${o.comment}</div>`
+    : '';
 
   const sizeRows = p.sizes.map((s,si)=>{
     const iid = `done-${o.id}-${p.code}-${si}`;
-    // розкрій показує cut/qty, цех показує done/qty
     const progress = page==='rozkroi' ? (s.cut||0) : (s.done||0);
     const fracCls = progress>=s.qty&&s.qty>0 ? 'done-fraction full' : progress>0 ? 'done-fraction partial' : 'done-fraction';
     const inputLabel = nextStatus==='done' ? 'Зшито' : 'Розкроєно';
     const remaining = s.qty - progress;
-    return `<tr>
+    // В Цеху: кнопка "Готово" недоступна якщо цей розмір ще не повністю розкроєний
+    const notCutYet = page==='tsekh' && (s.cut||0) < s.qty;
+    const isDisabled = remaining <= 0 || notCutYet;
+    const disabledTitle = notCutYet ? `title="Спочатку розкрій всю партію (розкроєно ${s.cut||0}/${s.qty})"` : '';
+    return `<tr${notCutYet ? ' style="opacity:.55"' : ''}>
       <td>${s.sz}</td>
       <td>${s.sex}</td>
-      <td><span class="${fracCls}">${progress}/${s.qty}</span></td>
+      <td>
+        <span class="${fracCls}">${progress}/${s.qty}</span>
+        ${page==='tsekh' && (s.cut||0) < s.qty ? `<span style="font-size:9px;color:#e74c3c;margin-left:4px">розкроєно ${s.cut||0}/${s.qty}</span>` : ''}
+      </td>
       <td style="display:flex;align-items:center;gap:6px">
         <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="${inputLabel}…" class="ws-done-input"
-          ${remaining<=0?'disabled':''}>
+          ${isDisabled?'disabled':''}>
         <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},'${p.code}',${si},'${nextStatus}','${page}',document.getElementById('${iid}').value)"
-          ${remaining<=0?'disabled style="opacity:.4"':''}>
+          ${disabledTitle} ${isDisabled?'disabled style="opacity:.4"':''}>
           ${nextLabel}</button>
       </td>
     </tr>`;
@@ -1414,6 +1424,7 @@ function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
       <span class="ws-prod-code">${p.code}</span>
       <span class="ws-meta-toggle" onclick="toggleMeta('${metaId}')">▸ деталі</span>
     </div>
+    ${commentHtml}
     <div class="ws-meta" id="${metaId}">${metaFields}</div>
     <table class="ws-size-table">
       <thead><tr>
