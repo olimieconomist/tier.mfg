@@ -1135,32 +1135,59 @@ function buildOrderRow(o) {
     <td class="nodim">${sBadge(dispStatus)}</td>
     <td><div class="chevron">▾</div></td>
   </tr>
- <tr class="order-detail"><td colspan="6"><div class="detail-cell">
-    ${conflictHtml}${dlWarnHtml}
-    <div style="display:grid;grid-template-columns:100px 100px 1fr 1fr 140px;gap:10px;align-items:end;margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
-      <div class="detail-field">
-        <div class="lbl">Створено</div>
-        <div class="val" style="font-size:12px;padding-top:2px">${fmtDFull(o.created)}</div>
+<tr class="order-detail">
+  <td colspan="6">
+    <div class="detail-cell">
+
+      ${conflictHtml}${dlWarnHtml}
+
+      <!-- Верхній блок (дати + старт/кінець) -->
+      <div style="display:grid;grid-template-columns:100px 100px 1fr 1fr 140px;gap:10px;align-items:end;margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
+
+        <div class="detail-field">
+          <div class="lbl">Створено</div>
+          <div class="val" style="font-size:12px;padding-top:2px">${fmtDFull(o.created)}</div>
+        </div>
+
+        <div class="detail-field">
+          <div class="lbl">Дедлайн</div>
+          <div class="val ${dlWarn?'warn':''}" style="font-size:12px;padding-top:2px">${fmtDFull(o.deadline)}</div>
+        </div>
+
+        <div class="detail-field">
+          <div class="lbl">Початок виробництва</div>
+          <input type="date" value="${o.workStart||''}" onchange="updWorkDate(${o.id},'workStart',this.value,this)">
+        </div>
+
+        <div class="detail-field">
+          <div class="lbl">Кінець виробництва</div>
+          <input type="date" value="${o.workEnd||''}" onchange="updWorkDate(${o.id},'workEnd',this.value,this)">
+        </div>
+
       </div>
-      <div class="detail-field">
-        <div class="lbl">Дедлайн</div>
-        <div class="val ${dlWarn?'warn':''}  " style="font-size:12px;padding-top:2px">${fmtDFull(o.deadline)}</div>
+
+      <!-- Статус -->
+      <div class="detail-grid" style="grid-template-columns:1fr;margin-top:10px">
+        <div class="detail-field">
+          <div class="lbl">Статус</div>
+          <select class="status-sel" onchange="updStatus(${o.id},this.value)">
+            ${statusOpts}
+          </select>
+        </div>
       </div>
-      <div class="detail-field"><div class="lbl">Початок виробництва</div>
-        <input type="date" value="${o.workStart||''}" onchange="updWorkDate(${o.id},'workStart',this.value,this)">
+
+      <!-- Коментар -->
+      <div class="detail-field" style="margin-top:10px">
+        <div class="lbl">Коментар</div>
+        <textarea 
+          placeholder="Коментар до замовлення..."
+          onchange="updOrder(${o.id},'comment',this.value)"
+        >${o.comment||''}</textarea>
       </div>
-      <div class="detail-field"><div class="lbl">Кінець виробництва</div>
-        <input type="date" value="${o.workEnd||''}" onchange="updWorkDate(${o.id},'workEnd',this.value,this)">
-      </div>
-      <div class="detail-field"><div class="lbl">Статус</div>
-        <select class="status-sel" onchange="updStatus(${o.id},this.value)">${statusOpts}</select>
-      </div>
+
     </div>
-    <div class="prod-detail-list">
-      <div class="pdl-title">Вироби</div>
-      ${o.products.map(p=>buildProdDetail(p)).join('')}
-    </div>
-  </div></td></tr>
+  </td>
+</tr>
 </tbody>`;
 }
 
