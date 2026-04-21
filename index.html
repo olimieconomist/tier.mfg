@@ -1135,59 +1135,36 @@ function buildOrderRow(o) {
     <td class="nodim">${sBadge(dispStatus)}</td>
     <td><div class="chevron">▾</div></td>
   </tr>
-<tr class="order-detail">
-  <td colspan="6">
-    <div class="detail-cell">
-
-      ${conflictHtml}${dlWarnHtml}
-
-      <!-- Верхній блок (дати + старт/кінець) -->
-      <div style="display:grid;grid-template-columns:100px 100px 1fr 1fr 140px;gap:10px;align-items:end;margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
-
-        <div class="detail-field">
-          <div class="lbl">Створено</div>
-          <div class="val" style="font-size:12px;padding-top:2px">${fmtDFull(o.created)}</div>
-        </div>
-
-        <div class="detail-field">
-          <div class="lbl">Дедлайн</div>
-          <div class="val ${dlWarn?'warn':''}" style="font-size:12px;padding-top:2px">${fmtDFull(o.deadline)}</div>
-        </div>
-
-        <div class="detail-field">
-          <div class="lbl">Початок виробництва</div>
-          <input type="date" value="${o.workStart||''}" onchange="updWorkDate(${o.id},'workStart',this.value,this)">
-        </div>
-
-        <div class="detail-field">
-          <div class="lbl">Кінець виробництва</div>
-          <input type="date" value="${o.workEnd||''}" onchange="updWorkDate(${o.id},'workEnd',this.value,this)">
-        </div>
-
+ <tr class="order-detail"><td colspan="6"><div class="detail-cell">
+    ${conflictHtml}${dlWarnHtml}
+    <div style="display:grid;grid-template-columns:100px 100px 1fr 1fr 140px;gap:10px;align-items:end;margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
+      <div class="detail-field">
+        <div class="lbl">Створено</div>
+        <div class="val" style="font-size:12px;padding-top:2px">${fmtDFull(o.created)}</div>
       </div>
-
-      <!-- Статус -->
-      <div class="detail-grid" style="grid-template-columns:1fr;margin-top:10px">
-        <div class="detail-field">
-          <div class="lbl">Статус</div>
-          <select class="status-sel" onchange="updStatus(${o.id},this.value)">
-            ${statusOpts}
-          </select>
-        </div>
+      <div class="detail-field">
+        <div class="lbl">Дедлайн</div>
+        <div class="val ${dlWarn?'warn':''}  " style="font-size:12px;padding-top:2px">${fmtDFull(o.deadline)}</div>
       </div>
-
-      <!-- Коментар -->
-      <div class="detail-field" style="margin-top:10px">
-        <div class="lbl">Коментар</div>
-        <textarea 
-          placeholder="Коментар до замовлення..."
-          onchange="updOrder(${o.id},'comment',this.value)"
-        >${o.comment||''}</textarea>
+      <div class="detail-field"><div class="lbl">Початок виробництва</div>
+        <input type="date" value="${o.workStart||''}" onchange="updWorkDate(${o.id},'workStart',this.value,this)">
       </div>
-
+      <div class="detail-field"><div class="lbl">Кінець виробництва</div>
+        <input type="date" value="${o.workEnd||''}" onchange="updWorkDate(${o.id},'workEnd',this.value,this)">
+      </div>
+      <div class="detail-field"><div class="lbl">Статус</div>
+        <select class="status-sel" onchange="updStatus(${o.id},this.value)">${statusOpts}</select>
+      </div>
     </div>
-  </td>
-</tr>
+    <div class="detail-field" style="margin-top:10px">
+      <div class="lbl">Коментар</div>
+      <textarea placeholder="Коментар до замовлення..." onchange="updOrder(${o.id},'comment',this.value)">${o.comment||''}</textarea>
+    </div>
+    <div class="prod-detail-list">
+      <div class="pdl-title">Вироби</div>
+      ${o.products.map(p=>buildProdDetail(p)).join('')}
+    </div>
+  </div></td></tr>
 </tbody>`;
 }
 
@@ -1195,8 +1172,20 @@ function buildProdDetail(p) {
   const vt = DB.vtProducts.find(x=>x.id===p.vtId);
   const v = vt ? vt.variants[p.variantIdx] : null;
   const sizes = p.sizes.map(s=>{
-    const frac = `${s.done}/${s.qty}`;
-    const cls = s.done>=s.qty&&s.qty>0?'done-fraction full':s.done>0?'done-fraction partial':'done-fraction';
+    const done = s.done||0;
+    const cut  = s.cut||0;
+    // показуємо done/qty якщо щось зшито, інакше cut/qty якщо щось розкроєно, інакше просто qty
+    let frac, cls;
+    if(done > 0) {
+      frac = `${done}/${s.qty}`;
+      cls  = done >= s.qty ? 'done-fraction full' : 'done-fraction partial';
+    } else if(cut > 0) {
+      frac = `розкр. ${cut}/${s.qty}`;
+      cls  = 'done-fraction partial';
+    } else {
+      frac = `${s.qty}`;
+      cls  = 'done-fraction';
+    }
     return `<span class="schip"><span class="sz">${s.sz}</span><span class="sq"> ${s.sex}</span>
       <span class="${cls}" style="margin-left:4px">${frac}</span></span>`;
   }).join('');
@@ -1370,14 +1359,14 @@ function renderWorkshop(page) {
     .filter(o => {
       if(['done','closed'].includes(o.status)) return false;
       if(page==='rozkroi') {
-        // показувати якщо статус розкрій І є хоч 1 розмір без cut
-        return o.status === 'rozkroi' &&
+        // Розкрій: статус rozkroi або shveika, і є хоч 1 нерозкроєний розмір
+        return ['rozkroi','shveika'].includes(o.status) &&
           o.products.some(p => p.sizes.some(s => (s.cut||0) < s.qty));
       }
       if(page==='tsekh') {
-        // показувати якщо є хоч 1 розмір з cut > 0 і done < qty
+        // Цех: є хоч 1 розмір де cut > 0 і done < cut (є що шити)
         return ['rozkroi','shveika'].includes(o.status) &&
-          o.products.some(p => p.sizes.some(s => (s.cut||0) > 0 && (s.done||0) < s.qty));
+          o.products.some(p => p.sizes.some(s => (s.cut||0) > 0 && (s.done||0) < (s.cut||0)));
       }
       return false;
     })
@@ -1395,8 +1384,8 @@ function renderWorkshop(page) {
     // показуємо тільки релевантні вироби для цієї сторінки
     const relevantProds = o.products.filter(p =>
       page==='rozkroi'
-        ? p.sizes.some(s => (s.cut||0) < s.qty)       // є нерозкроєні
-        : p.sizes.some(s => (s.cut||0) > 0 && (s.done||0) < s.qty) // є розкроєні, але не всі зшиті
+        ? p.sizes.some(s => (s.cut||0) < s.qty)
+        : p.sizes.some(s => (s.cut||0) > 0 && (s.done||0) < (s.cut||0))
     );
     return `<div class="ws-order-card" id="ws${page}${o.id}">
       <div class="ws-order-head" onclick="document.getElementById('ws${page}${o.id}').classList.toggle('open')">
@@ -1428,38 +1417,54 @@ function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
 
   const sizeRows = p.sizes.map((s,si)=>{
     const iid = `done-${o.id}-${p.code}-${si}`;
-    const progress = page==='rozkroi' ? (s.cut||0) : (s.done||0);
-    const fracCls = progress>=s.qty&&s.qty>0 ? 'done-fraction full' : progress>0 ? 'done-fraction partial' : 'done-fraction';
-    const inputLabel = nextStatus==='done' ? 'Зшито' : 'Розкроєно';
-    // В Цеху: доступно тільки те що вже розкроєне; якщо cut=0 — нічого не можна
-    const cutSoFar = page==='tsekh' ? (s.cut||0) : s.qty;
-    const remaining = cutSoFar - (s.done||0);
-    const nothingCut = page==='tsekh' && cutSoFar === 0;
-    const isDisabled = remaining <= 0 || nothingCut;
-    const disabledTitle = nothingCut ? `title="Спочатку відправ хоча б частину в розкрій"` : '';
-    const cutInfo = page==='tsekh' && cutSoFar < s.qty
-      ? `<span style="font-size:9px;color:#4f8ef7;margin-left:4px">розкроєно ${cutSoFar}/${s.qty}</span>` : '';
-    return `<tr>
-      <td>${s.sz}</td>
-      <td>${s.sex}</td>
-      <td>
-        <span class="${fracCls}">${progress}/${s.qty}</span>
-        ${cutInfo}
-      </td>
-      <td style="display:flex;align-items:center;gap:6px">
-        <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="${inputLabel}…" class="ws-done-input"
-          ${isDisabled?'disabled':''}>
-        <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},'${p.code}',${si},'${nextStatus}','${page}',document.getElementById('${iid}').value)"
-          ${disabledTitle} ${isDisabled?'disabled style="opacity:.4"':''}>
-          ${nextLabel}</button>
-      </td>
-    </tr>`;
+    if(page==='rozkroi') {
+      // Розкрій: показуємо тільки нерозкроєні розміри
+      const cut = s.cut||0;
+      if(cut >= s.qty) return ''; // повністю розкроєний — не показуємо
+      const remaining = s.qty - cut;
+      const progress = cut;
+      const fracCls = cut > 0 ? 'done-fraction partial' : 'done-fraction';
+      return `<tr>
+        <td>${s.sz}</td>
+        <td>${s.sex}</td>
+        <td><span class="${fracCls}">${cut}/${s.qty}</span></td>
+        <td style="display:flex;align-items:center;gap:6px">
+          <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="Розкроєно…" class="ws-done-input">
+          <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},'${p.code}',${si},'shveika','rozkroi',document.getElementById('${iid}').value)">
+            → Цех</button>
+        </td>
+      </tr>`;
+    } else {
+      // Цех: показуємо тільки розкроєні але не зшиті
+      const cut  = s.cut||0;
+      const done = s.done||0;
+      if(cut === 0) return ''; // ще не розкроєно — не показуємо в Цеху
+      if(done >= cut) return ''; // вся розкроєна партія вже зшита
+      const remaining = cut - done;
+      const fracCls = done > 0 ? 'done-fraction partial' : 'done-fraction';
+      const cutInfo = cut < s.qty
+        ? `<span style="font-size:9px;color:#4f8ef7;margin-left:4px">(розкр. ${cut}/${s.qty})</span>` : '';
+      return `<tr>
+        <td>${s.sz}</td>
+        <td>${s.sex}</td>
+        <td>
+          <span class="${fracCls}">${done}/${s.qty}</span>
+          ${cutInfo}
+        </td>
+        <td style="display:flex;align-items:center;gap:6px">
+          <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="Зшито…" class="ws-done-input">
+          <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},'${p.code}',${si},'done','tsekh',document.getElementById('${iid}').value)">
+            → Готово</button>
+        </td>
+      </tr>`;
+    }
   }).join('');
 
   return `<div class="ws-prod-item">
     <div class="ws-prod-title">
       <div class="ws-prod-name">${p.name}</div>
       <span class="ws-prod-code">${p.code}</span>
+      console.log(order);
       <span class="ws-meta-toggle" onclick="toggleMeta('${metaId}')">▸ деталі</span>
     </div>
     ${commentHtml}
@@ -1490,38 +1495,35 @@ function moveSize(orderId, prodCode, sizeIdx, nextStatus, page, qtyVal) {
   const qty = parseInt(qtyVal)||0;
 
 if(nextStatus === 'shveika') {
-  // Розкрій → Цех: додаємо кількість розкроєного (обов'язково > 0)
-  if (qty <= 0) { 
-    renderWorkshop(page); 
-    return; 
-  }
+  if (qty <= 0) { renderWorkshop(page); return; }
   s.cut = Math.min(s.qty, (s.cut || 0) + qty);
-  // Виріб стає доступним у швейці при будь-якому cut > 0
-  if (s.cut > 0) {
-    p.prodStage = 'shveika';
-  }
-  // Статус замовлення змінюємо ТІЛЬКИ коли все розкроєно
-  if (o.status === 'rozkroi' && s.cut === s.qty) {
+  if (s.cut > 0) p.prodStage = 'shveika';
+  // Статус замовлення → Цех тільки коли ВСІ продукти ВСІ розміри повністю розкроєні
+  const allFullyCut = o.products.every(pr => pr.sizes.every(sz => (sz.cut||0) >= sz.qty));
+  if (allFullyCut && o.status === 'rozkroi') {
     o.status = 'shveika';
     syncField(o.no, 'status', SLABELS['shveika']);
   }
 
   } else if(nextStatus==='done') {
-    // Цех → Готово: додаємо ТІЛЬКИ вказану кількість (qty обов'язково > 0)
     if(qty <= 0) { renderWorkshop(page); return; }
-    s.done = Math.min(s.qty, (s.done||0) + qty);
-    // Виріб "готовий" тільки якщо ВСІ розміри зшиті повністю
-    const allSizesDone = p.sizes.every(sz => (sz.done||0) >= sz.qty);
+    // Не можна зшити більше ніж розкроєно
+    const maxCanDo = (s.cut||0) - (s.done||0);
+    if(maxCanDo <= 0) { renderWorkshop(page); return; }
+    s.done = (s.done||0) + Math.min(qty, maxCanDo);
+    // Виріб "готовий" якщо done >= cut для всіх розмірів
+    const allSizesDone = p.sizes.every(sz => (sz.done||0) >= (sz.cut||0) && (sz.cut||0) >= sz.qty);
     if(allSizesDone) p.prodStage = 'done';
-    // Замовлення "готове" тільки якщо ВСІ вироби готові
+    // Замовлення "готове" якщо ВСІ вироби мають prodStage='done'
     const allDone = o.products.every(pr => pr.prodStage === 'done');
-    if(allDone) o.status = 'done';
+    if(allDone) {
+      o.status = 'done';
+      syncField(o.no, 'status', SLABELS['done']);
+    }
   }
 
   // Синхронізувати products JSON в Sheets
   syncField(o.no, 'productsJson', JSON.stringify(o.products));
-  if(o.status === 'done') syncField(o.no, 'status', SLABELS['done']);
-
   renderStats(); renderOrders(); renderCalendar();
   renderWorkshop(page);
   if(page==='rozkroi' && nextStatus==='shveika') renderWorkshop('tsekh');
