@@ -884,6 +884,17 @@ function setFilter(f, btn) {
   renderOrders();
 }
 
+function isOrderInTsekh(o) {
+  return ['rozkroi','shveika'].includes(o.status) &&
+    o.products.some(p => p.sizes.some(s => isTsekhSizeVisible(s)));
+}
+
+function isTsekhSizeVisible(s) {
+  const cut  = s.cut||0;
+  const done = s.done||0;
+  return done < s.qty && (cut > 0 || done > 0);
+}
+
 // ════════════════════════════════════════════════
 //  CREATE FORM
 // ════════════════════════════════════════════════
@@ -1052,6 +1063,7 @@ function renderOrders() {
 
   if(currentFilter==='overdue') list = list.filter(o=>isOver(o));
   else if(currentFilter==='closed') list = DB.orders.filter(o=>o.status==='closed');
+  else if(currentFilter==='shveika') list = list.filter(o=>isOrderInTsekh(o));
   else if(currentFilter!=='all') list = list.filter(o=>o.status===currentFilter);
 
   list.sort((a,b)=>{
@@ -1173,19 +1185,12 @@ function buildProdDetail(p) {
   const v = vt ? vt.variants[p.variantIdx] : null;
   const sizes = p.sizes.map(s=>{
     const done = s.done||0;
-    const cut  = s.cut||0;
-    // показуємо done/qty якщо щось зшито, інакше cut/qty якщо щось розкроєно, інакше просто qty
-    let frac, cls;
-    if(done > 0) {
-      frac = `${done}/${s.qty}`;
-      cls  = done >= s.qty ? 'done-fraction full' : 'done-fraction partial';
-    } else if(cut > 0) {
-      frac = `розкр. ${cut}/${s.qty}`;
-      cls  = 'done-fraction partial';
-    } else {
-      frac = `${s.qty}`;
-      cls  = 'done-fraction';
-    }
+    const frac = `${done}/${s.qty}`;
+    const cls = done >= s.qty
+      ? 'done-fraction full'
+      : done > 0
+        ? 'done-fraction partial'
+        : 'done-fraction';
     return `<span class="schip"><span class="sz">${s.sz}</span><span class="sq"> ${s.sex}</span>
       <span class="${cls}" style="margin-left:4px">${frac}</span></span>`;
   }).join('');
@@ -1364,9 +1369,9 @@ function renderWorkshop(page) {
           o.products.some(p => p.sizes.some(s => (s.cut||0) < s.qty));
       }
       if(page==='tsekh') {
-        // Цех: є хоч 1 розмір де cut > 0 і done < cut (є що шити)
+        // Цех: показуємо і активну роботу, і вже частково готові позиції
         return ['rozkroi','shveika'].includes(o.status) &&
-          o.products.some(p => p.sizes.some(s => (s.cut||0) > 0 && (s.done||0) < (s.cut||0)));
+          o.products.some(p => p.sizes.some(s => isTsekhSizeVisible(s)));
       }
       return false;
     })
@@ -1382,11 +1387,13 @@ function renderWorkshop(page) {
 
   container.innerHTML = list.map(o=>{
     // показуємо тільки релевантні вироби для цієї сторінки
-    const relevantProds = o.products.filter(p =>
-      page==='rozkroi'
-        ? p.sizes.some(s => (s.cut||0) < s.qty)
-        : p.sizes.some(s => (s.cut||0) > 0 && (s.done||0) < (s.cut||0))
-    );
+    const relevantProds = o.products
+      .map((p, prodIdx) => ({ p, prodIdx }))
+      .filter(({ p }) =>
+        page==='rozkroi'
+          ? p.sizes.some(s => (s.cut||0) < s.qty)
+          : p.sizes.some(s => isTsekhSizeVisible(s))
+      );
     return `<div class="ws-order-card" id="ws${page}${o.id}">
       <div class="ws-order-head" onclick="document.getElementById('ws${page}${o.id}').classList.toggle('open')">
         <div class="ws-order-no">${String(o.no).padStart(3,'0')}</div>
@@ -1395,16 +1402,16 @@ function renderWorkshop(page) {
         <div class="ws-order-chevron">▾</div>
       </div>
       <div class="ws-order-body">
-        ${relevantProds.map(p=>buildWsProd(o, p, nextStatus, nextLabel, btnCls, page)).join('')}
+        ${relevantProds.map(({ p, prodIdx })=>buildWsProd(o, p, prodIdx, nextStatus, nextLabel, btnCls, page)).join('')}
       </div>
     </div>`;
   }).join('');
 }
 
-function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
+function buildWsProd(o, p, prodIdx, nextStatus, nextLabel, btnCls, page) {
   const vt = DB.vtProducts.find(x=>x.id===p.vtId);
   const v  = vt ? vt.variants[p.variantIdx] : null;
-  const metaId = `meta-${o.id}-${p.code}`;
+  const metaId = `meta-${page}-${o.id}-${prodIdx}`;
 
   const metaFields = v ? [
     ['Тканина', v.fabric], ['Артикул', v.fabricArt], ['Колір', v.color],
@@ -1416,7 +1423,7 @@ function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
     : '';
 
   const sizeRows = p.sizes.map((s,si)=>{
-    const iid = `done-${o.id}-${p.code}-${si}`;
+    const iid = `qty-${page}-${o.id}-${prodIdx}-${si}`;
     if(page==='rozkroi') {
       // Розкрій: показуємо тільки нерозкроєні розміри
       const cut = s.cut||0;
@@ -1430,20 +1437,24 @@ function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
         <td><span class="${fracCls}">${cut}/${s.qty}</span></td>
         <td style="display:flex;align-items:center;gap:6px">
           <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="Розкроєно…" class="ws-done-input">
-          <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},'${p.code}',${si},'shveika','rozkroi',document.getElementById('${iid}').value)">
+          <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},${prodIdx},${si},'shveika','rozkroi',document.getElementById('${iid}').value)">
             → Цех</button>
         </td>
       </tr>`;
     } else {
-      // Цех: показуємо тільки розкроєні але не зшиті
+      // Цех: показуємо все, де вже є прогрес пошиття або є що шити далі
       const cut  = s.cut||0;
       const done = s.done||0;
-      if(cut === 0) return ''; // ще не розкроєно — не показуємо в Цеху
-      if(done >= cut) return ''; // вся розкроєна партія вже зшита
-      const remaining = cut - done;
+      if(!isTsekhSizeVisible(s)) return '';
+      const remaining = Math.max(cut - done, 0);
       const fracCls = done > 0 ? 'done-fraction partial' : 'done-fraction';
-      const cutInfo = cut < s.qty
+      const cutInfo = cut > 0 && cut < s.qty
         ? `<span style="font-size:9px;color:#4f8ef7;margin-left:4px">(розкр. ${cut}/${s.qty})</span>` : '';
+      const actionHtml = remaining > 0
+        ? `<input id="${iid}" type="number" min="1" max="${remaining}" placeholder="Зшито…" class="ws-done-input">
+          <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},${prodIdx},${si},'done','tsekh',document.getElementById('${iid}').value)">
+            → Готово</button>`
+        : `<span class="hint">Чекає розкрою</span>`;
       return `<tr>
         <td>${s.sz}</td>
         <td>${s.sex}</td>
@@ -1452,9 +1463,7 @@ function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
           ${cutInfo}
         </td>
         <td style="display:flex;align-items:center;gap:6px">
-          <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="Зшито…" class="ws-done-input">
-          <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},'${p.code}',${si},'done','tsekh',document.getElementById('${iid}').value)">
-            → Готово</button>
+          ${actionHtml}
         </td>
       </tr>`;
     }
@@ -1464,7 +1473,6 @@ function buildWsProd(o, p, nextStatus, nextLabel, btnCls, page) {
     <div class="ws-prod-title">
       <div class="ws-prod-name">${p.name}</div>
       <span class="ws-prod-code">${p.code}</span>
-      console.log(order);
       <span class="ws-meta-toggle" onclick="toggleMeta('${metaId}')">▸ деталі</span>
     </div>
     ${commentHtml}
@@ -1484,10 +1492,10 @@ function toggleMeta(id) {
   if(el) el.classList.toggle('open');
 }
 
-function moveSize(orderId, prodCode, sizeIdx, nextStatus, page, qtyVal) {
+function moveSize(orderId, prodIdx, sizeIdx, nextStatus, page, qtyVal) {
   const o = DB.orders.find(x=>x.id===orderId);
   if(!o) return;
-  const p = o.products.find(x=>x.code===prodCode);
+  const p = o.products[prodIdx];
   if(!p) return;
   const s = p.sizes[sizeIdx];
   if(!s) return;
@@ -1510,12 +1518,12 @@ if(nextStatus === 'shveika') {
     // Не можна зшити більше ніж розкроєно
     const maxCanDo = (s.cut||0) - (s.done||0);
     if(maxCanDo <= 0) { renderWorkshop(page); return; }
-    s.done = (s.done||0) + Math.min(qty, maxCanDo);
-    // Виріб "готовий" якщо done >= cut для всіх розмірів
-    const allSizesDone = p.sizes.every(sz => (sz.done||0) >= (sz.cut||0) && (sz.cut||0) >= sz.qty);
-    if(allSizesDone) p.prodStage = 'done';
-    // Замовлення "готове" якщо ВСІ вироби мають prodStage='done'
-    const allDone = o.products.every(pr => pr.prodStage === 'done');
+    s.done = Math.min(s.qty, (s.done||0) + Math.min(qty, maxCanDo));
+    // Виріб "готовий" коли фактично пошито всю кількість
+    const allSizesDone = p.sizes.every(sz => (sz.done||0) >= sz.qty);
+    p.prodStage = allSizesDone ? 'done' : 'shveika';
+    // Замовлення "готове" коли пошито всю кількість по всіх виробах
+    const allDone = o.products.every(pr => pr.sizes.every(sz => (sz.done||0) >= sz.qty));
     if(allDone) {
       o.status = 'done';
       syncField(o.no, 'status', SLABELS['done']);
