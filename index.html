@@ -35,6 +35,8 @@
   --red-bg:    #2b0d0d;
   --orange:    #f97316;
   --orange-bg: #2a1505;
+  --purple:    #9b59b6;
+  --purple-bg: #200a2e;
   --gray-bg:   #1c1e24;
 
   /* ── ШРИФТИ ── */
@@ -122,6 +124,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .fbtn.f-done.active{border-color:var(--green);color:var(--green);background:var(--green-bg)}
 .fbtn.f-over.active{border-color:var(--red);color:var(--red);background:var(--red-bg)}
 .fbtn.f-closed.active{border-color:var(--text-dim);color:var(--text-dim);background:var(--surface2)}
+.fbtn.f-sub.active{border-color:var(--purple);color:var(--purple);background:var(--purple-bg)}
 
 /* ══════════════════════════════════════════════
    ФОРМА НОВОГО ЗАМОВЛЕННЯ (collapsible)
@@ -160,6 +163,8 @@ input[type=text],input[type=date],input[type=number],select,textarea{
 input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 select option{background:var(--bg)}
 .input-auto{background:var(--surface2);color:var(--text-muted);cursor:default}
+select.input-auto{background:var(--surface2);color:var(--text-dim);pointer-events:none;opacity:.7}
+input[disabled],select[disabled]{opacity:.45;cursor:not-allowed;filter:brightness(.8)}
 /* ── Іконка дати — біла ── */
 input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.55;cursor:pointer}
 input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
@@ -205,6 +210,8 @@ input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
 .btn-orange:hover{background:#e8650a}
 .btn-green{background:var(--green);border-color:var(--green);color:#000}
 .btn-green:hover{background:#25b864}
+.btn-sub{background:var(--purple);border-color:var(--purple);color:#fff}
+.btn-sub:hover{background:#8e44ad}
 .btn-print{border-color:var(--text-dim);color:var(--text-muted)}
 .btn-print:hover{border-color:var(--text);color:var(--text)}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -228,6 +235,7 @@ tbody.order-card:last-child{border-bottom:none}
 tbody.order-card.s-new     .order-head td{border-left:2px solid var(--red)}
 tbody.order-card.s-rozkroi .order-head td{border-left:2px solid var(--orange)}
 tbody.order-card.s-shveika .order-head td{border-left:2px solid var(--yellow)}
+tbody.order-card.s-sublimation .order-head td{border-left:2px solid var(--purple)}
 tbody.order-card.s-done    .order-head td{border-left:2px solid var(--green)}
 tbody.order-card.s-closed  .order-head td{border-left:2px solid var(--text-dim)}
 tbody.order-card.is-overdue .order-head{background:rgba(231,68,60,.04)}
@@ -239,6 +247,18 @@ tbody.order-card.is-tier{background:rgba(79,142,247,.025)}
 
 .order-no{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:2px 6px;border-radius:3px;border:1px solid var(--border);font-family:var(--mono)}
 .tag-tier{display:inline-block;padding:1px 6px;border-radius:2px;font-size:9px;letter-spacing:.08em;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(79,142,247,.3);margin-left:5px}
+.tag-teams{display:inline-block;padding:1px 6px;border-radius:2px;font-size:9px;letter-spacing:.08em;background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(245,197,24,.3);margin-left:5px}
+tbody.order-card.is-teams{background:rgba(245,197,24,.02)}
+.otype-btns{display:flex;gap:4px}
+.otype-btn{
+  padding:4px 12px;border-radius:3px;border:1px solid var(--border2);
+  background:transparent;color:var(--text-muted);font-family:var(--mono);
+  font-size:10px;letter-spacing:.05em;cursor:pointer;transition:all .12s;
+}
+.otype-btn:hover{border-color:var(--text-muted)}
+.otype-btn.active-sewing{border-color:var(--text-dim);color:var(--text);background:var(--surface2)}
+.otype-btn.active-tier{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.otype-btn.active-teams{border-color:var(--yellow);color:var(--yellow);background:var(--yellow-bg)}
 .date-group{display:flex;flex-direction:column;gap:2px}
 .date-lbl{font-size:9px;color:var(--text-dim);letter-spacing:.08em}
 .date-val{font-size:11px;color:var(--text-muted)}
@@ -253,6 +273,7 @@ tbody.order-card.is-tier{background:rgba(79,142,247,.025)}
 .sb-shveika{background:var(--yellow-bg);color:var(--yellow)}
 .sb-done   {background:var(--green-bg);color:var(--green)}
 .sb-closed {background:var(--surface2);color:var(--text-dim)}
+.sb-sublimation{background:var(--purple-bg);color:var(--purple)}
 .sb-overdue{background:var(--red-bg);color:var(--red)}
 
 .chevron{color:var(--text-dim);font-size:11px;transition:transform .2s;text-align:center}
@@ -306,6 +327,7 @@ tbody.order-card.open .order-detail{display:table-row}
 .cday.ev-sh{background:rgba(46,204,113,.15);color:var(--text)}
 .cday.ev-both{background:linear-gradient(135deg,rgba(79,142,247,.25) 50%,rgba(46,204,113,.2) 50%);color:var(--text)}
 .cday.has-ev:hover{opacity:.8;filter:brightness(1.2)}
+.cday.has-deadline::before{content:'';position:absolute;top:2px;right:2px;width:4px;height:4px;border-radius:50%;background:var(--red);z-index:1}
 .cal-legend{display:flex;gap:12px;padding:6px 10px;border-top:1px solid var(--border);background:var(--surface2)}
 .cal-leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--text-dim)}
 .cal-leg-dot{width:8px;height:8px;border-radius:2px}
@@ -399,11 +421,35 @@ tbody.order-card.open .order-detail{display:table-row}
 .vt-item.open .vt-body{display:block}
 .vt-item.open .vt-head-chev{transform:rotate(180deg)}
 .vt-head-chev{font-size:11px;color:var(--text-dim);transition:transform .2s}
+.vt-subtabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px}
+.vt-stab{
+  padding:5px 14px;border-radius:3px;border:1px solid var(--border);
+  background:transparent;color:var(--text-muted);font-family:var(--mono);
+  font-size:10px;letter-spacing:.06em;cursor:pointer;transition:all .12s;
+}
+.vt-stab:hover{border-color:var(--text-muted);color:var(--text)}
+.vt-stab.st-tier  {border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.vt-stab.st-sewing{border-color:var(--text-dim);color:var(--text);background:var(--surface2)}
+.vt-stab.st-teams {border-color:var(--yellow);color:var(--yellow);background:var(--yellow-bg)}
 .variant-row{
   background:var(--surface);border:1px solid var(--border);border-radius:4px;
-  margin-bottom:6px;padding:8px 10px;
+  margin-bottom:6px;padding:8px 10px;position:relative;
   display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;
 }
+.variant-row .vr-del{
+  position:absolute;top:6px;right:8px;background:none;border:none;
+  color:var(--text-dim);cursor:pointer;font-size:13px;padding:2px 5px;
+  border-radius:3px;transition:color .15s;
+}
+.variant-row .vr-del:hover{color:var(--red)}
+.vav-form{
+  border:1px dashed var(--border2);border-radius:5px;padding:12px;
+  margin-top:8px;background:var(--bg);display:none;
+}
+.vav-form.open{display:block}
+.vav-form .form-row{margin-bottom:8px}
+.vav-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:10px}
 .vr-field{display:flex;flex-direction:column;gap:2px}
 .vr-lbl{font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono)}
 .vr-val{font-size:11px;color:var(--text-muted);font-family:var(--mono)}
@@ -427,6 +473,8 @@ tbody.order-card.open .order-detail{display:table-row}
 .dtag-thread  {background:rgba(79,142,247,.08);color:var(--accent);border-color:rgba(79,142,247,.2)}
 .dtag-hardware{background:rgba(245,197,24,.08);color:var(--yellow);border-color:rgba(245,197,24,.2)}
 .dtag-branding{background:rgba(249,115,22,.08);color:var(--orange);border-color:rgba(249,115,22,.2)}
+.dtag-teams  {background:rgba(96,198,232,.08);color:#60c6e8;border-color:rgba(96,198,232,.2)}
+.dtag-sewing {background:rgba(155,89,182,.08);color:var(--purple);border-color:rgba(155,89,182,.2)}
 
 /* ══════════════════════════════════════════════
    АРХІВ
@@ -491,10 +539,11 @@ textarea:focus{border-color:var(--accent)}
 <!-- ВКЛАДКИ -->
 <div class="tabs">
   <button class="tab active" onclick="goTab('orders',this)">📋 ЗАМОВЛЕННЯ</button>
+  <button class="tab" onclick="goTab('sublimation',this)">🟣 СУБЛІМАЦІЯ</button>
   <button class="tab" onclick="goTab('rozkroi',this)">✂️ РОЗКРІЙ</button>
   <button class="tab" onclick="goTab('tsekh',this)">🧵 ЦЕХ</button>
   <button class="tab" onclick="goTab('archive',this)">📦 АРХІВ</button>
-  <button class="tab" onclick="goTab('vt',this)">🧠 ВИРОБИ TIER</button>
+  <button class="tab" onclick="goTab('vt',this)">📦 ВИРОБИ</button>
   <button class="tab" onclick="goTab('directory',this)">📚 ДОВІДНИК</button>
 </div>
 
@@ -511,6 +560,7 @@ textarea:focus{border-color:var(--accent)}
         <span class="filter-lbl">Фільтр:</span>
         <button class="fbtn active" onclick="setFilter('all',this)">Всі</button>
         <button class="fbtn f-new"    onclick="setFilter('new',this)">🔴 Не почато</button>
+        <button class="fbtn f-sub"    onclick="setFilter('sublimation',this)">🟣 Сублімація</button>
         <button class="fbtn f-roz"    onclick="setFilter('rozkroi',this)">🟠 Розкрій</button>
         <button class="fbtn f-shv"    onclick="setFilter('shveika',this)">🟡 Цех</button>
         <button class="fbtn f-done"   onclick="setFilter('done',this)">🟢 Готово</button>
@@ -533,8 +583,12 @@ textarea:focus{border-color:var(--accent)}
           </div>
           <div class="form-row" style="grid-template-columns:auto 1fr">
             <div class="fg" style="justify-content:flex-end;padding-bottom:2px">
-              <label class="lbl">Мітка</label>
-              <label class="tier-check"><input type="checkbox" id="ch-tier"> <span>⬡ TIER</span></label>
+              <label class="lbl">Тип замовлення</label>
+              <div class="otype-btns">
+                <button class="otype-btn active-sewing" id="otype-sewing"  onclick="setOrderType('sewing')">🧵 Швейка</button>
+                <button class="otype-btn" id="otype-tier"   onclick="setOrderType('tier')">⬡ TIER</button>
+                <button class="otype-btn" id="otype-teams"  onclick="setOrderType('teams')">👥 Команди</button>
+              </div>
             </div>
             <div></div>
           </div>
@@ -585,6 +639,17 @@ textarea:focus{border-color:var(--accent)}
   </div>
 </div>
 
+<!-- ══════════════ СУБЛІМАЦІЯ ══════════════ -->
+<div class="page" id="page-sublimation">
+  <div class="ws-section-head">
+    <div class="ws-title">🟣 СУБЛІМАЦІЯ — підготовка до розкрою</div>
+    <div class="row no-print">
+      <button class="btn btn-print btn-sm" onclick="window.print()">🖨️ Друк</button>
+    </div>
+  </div>
+  <div id="sublimation-list"></div>
+</div>
+
 <!-- ══════════════ РОЗКРІЙ ══════════════ -->
 <div class="page" id="page-rozkroi">
   <div class="ws-section-head">
@@ -615,11 +680,16 @@ textarea:focus{border-color:var(--accent)}
   <div id="archive-list"></div>
 </div>
 
-<!-- ══════════════ ВИРОБИ TIER ══════════════ -->
+<!-- ══════════════ ВИРОБИ ══════════════ -->
 <div class="page" id="page-vt">
   <div class="section-header">
-    <div class="section-title">🧠 Довідник виробів TIER</div>
+    <div class="section-title">📦 Довідник виробів</div>
     <span class="info-pill" id="vt-count"></span>
+  </div>
+  <div class="vt-subtabs">
+    <button class="vt-stab st-tier" id="vstab-tier"   onclick="setVtType('tier')">⬡ TIER</button>
+    <button class="vt-stab"         id="vstab-sewing" onclick="setVtType('sewing')">🧵 Швейка</button>
+    <button class="vt-stab"         id="vstab-teams"  onclick="setVtType('teams')">👥 Команди</button>
   </div>
   <!-- Форма додавання -->
   <div class="create-header closed" id="vtFormHdr" onclick="toggleVtForm()" style="margin-bottom:14px">
@@ -634,16 +704,33 @@ textarea:focus{border-color:var(--accent)}
         <div class="fg"><label class="lbl">Стать</label>
           <select id="vt-sex"><option value="">—</option><option>Жіноча</option><option>Чоловіча</option><option>Унісекс</option><option>Дитяча</option></select>
         </div>
+
       </div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
-        <div class="fg"><label class="lbl">Тканина</label><input type="text" id="vt-fabric" placeholder="Назва..."></div>
-        <div class="fg"><label class="lbl">Артикул тканини</label><input type="text" id="vt-art" placeholder="201"></div>
-        <div class="fg"><label class="lbl">Колір</label><input type="text" id="vt-color" placeholder="Чорний"></div>
-        <div class="fg"><label class="lbl">Штрихкод</label><input type="text" id="vt-barcode" placeholder="RG001BN..."></div>
+        <div class="fg"><label class="lbl">Тканина</label>
+          <select id="vt-fabric" onchange="vtFabricChange('vt')">
+            <option value="">— з довідника —</option>
+          </select>
+        </div>
+        <div class="fg"><label class="lbl">Колір</label>
+          <select id="vt-color" onchange="vtColorChange('vt')"><option value="">—</option></select>
+        </div>
+        <div class="fg"><label class="lbl">Артикул тканини</label>
+          <input type="text" id="vt-art" placeholder="—" class="input-auto" readonly disabled>
+        </div>
+        <div class="fg"><label class="lbl">Штрихкод</label>
+          <input type="text" id="vt-barcode" placeholder="RG001BN...">
+        </div>
       </div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
-        <div class="fg"><label class="lbl">Код брендування</label><input type="text" id="vt-brand-code" placeholder="001"></div>
-        <div class="fg"><label class="lbl">Матеріал брендування</label><input type="text" id="vt-brand-mat" placeholder="плівка..."></div>
+        <div class="fg"><label class="lbl">Брендування (код)</label>
+          <select id="vt-brand-code" onchange="vtBrandChange('vt')">
+            <option value="-">— без брендування —</option>
+          </select>
+        </div>
+        <div class="fg"><label class="lbl">Матеріал брендування</label>
+          <input type="text" id="vt-brand-mat" placeholder="—" class="input-auto" readonly disabled>
+        </div>
         <div class="fg" style="justify-content:flex-end">
           <label class="lbl">&nbsp;</label>
           <div class="row"><button class="btn btn-primary btn-sm" onclick="addVtItem()">Додати виріб</button><span class="err" id="vt-err"></span></div>
@@ -663,12 +750,10 @@ textarea:focus{border-color:var(--accent)}
   </div>
   <div class="create-body" id="dirFormBody">
     <div class="create-inner">
-      <div class="form-row" style="grid-template-columns:130px 1fr 1fr 1fr 1fr auto">
+      <div class="form-row" style="grid-template-columns:130px 1fr 1fr 1fr 1fr 1.2fr auto">
         <div class="fg"><label class="lbl">Вид</label>
           <select id="dir-type">
             <option value="fabric">Тканина</option>
-            <option value="thread">Нитки</option>
-            <option value="hardware">Фурнітура</option>
             <option value="branding">Брендування</option>
           </select>
         </div>
@@ -676,6 +761,7 @@ textarea:focus{border-color:var(--accent)}
         <div class="fg"><label class="lbl">Код</label><input type="text" id="dir-code" placeholder="FAB-01"></div>
         <div class="fg"><label class="lbl">Колір</label><input type="text" id="dir-color" placeholder="Колір"></div>
         <div class="fg"><label class="lbl">Матеріал / склад</label><input type="text" id="dir-mat" placeholder="100% поліестер"></div>
+        <div class="fg"><label class="lbl">Коментар</label><input type="text" id="dir-comment" placeholder="Примітка..."></div>
         <div class="fg" style="justify-content:flex-end">
           <label class="lbl">&nbsp;</label>
           <div class="row"><button class="btn btn-primary btn-sm" onclick="addDirItem()">Додати</button><span class="err" id="dir-err"></span></div>
@@ -727,8 +813,6 @@ async function loadFromSheets() {
     if(rawVt)  DB.vtProducts = rawVt;
     if(rawDir) DB.directory  = {
       fabric:   rawDir.fabric   || [],
-      thread:   rawDir.thread   || [],
-      hardware: rawDir.hardware || [],
       branding: rawDir.branding || [],
     };
 
@@ -739,6 +823,7 @@ async function loadFromSheets() {
       name:      String(o['Назва']   ||''),
       deadline:  String(o['Дедлайн'] ||''),
       tier:      o['Tier']==='ТАК',
+      teams:     o['Teams']==='ТАК',
       status:    closed ? 'closed' : normalizeStatus(o['Статус']),
       workStart: String(o['Початок'] ||''),
       workEnd:   String(o['Кінець']  ||''),
@@ -754,7 +839,7 @@ async function loadFromSheets() {
     nextOrderNo = DB.orders.length ? Math.max(...DB.orders.map(o=>o.no||0))+1 : 1;
 
     renderStats(); renderOrders(); renderCalendar();
-    renderWorkshop('rozkroi'); renderWorkshop('tsekh');
+    renderWorkshop('sublimation'); renderWorkshop('rozkroi'); renderWorkshop('tsekh');
     renderArchive(); renderVt(); renderDir();
   } catch(err) {
     console.error('loadFromSheets:', err);
@@ -765,7 +850,7 @@ async function saveOrderToSheets(order) {
   await apiPost({
     action:'addOrder',
     created: order.created, name: order.name, deadline: order.deadline,
-    tier: order.tier, workStart: order.workStart||'', workEnd: order.workEnd||'',
+    tier: order.tier, teams: order.teams||false, workStart: order.workStart||'', workEnd: order.workEnd||'',
     productsJson: JSON.stringify(order.products),
     comment: order.comment||'',
   });
@@ -803,15 +888,17 @@ let DB = {
   // Вироби TIER — завантажуються з листа "ВИРОБИ TIER"
   vtProducts: [],
   // Довідник — завантажується з листа "ДОВІДНИК"
-  directory: { fabric:[], thread:[], hardware:[], branding:[] }
+  directory: { fabric:[], branding:[] }
 };
 let nextOrderId = 5;
 let nextOrderNo = 5;
 let nextVtId = 42;
 let currentFilter = 'all';
+let currentOrderType = 'sewing'; // 'sewing' | 'tier' | 'teams'
+let currentVtType = 'tier';
 let prodBlockCount = 0;
-const DIR_LABELS = {fabric:'🟢 Тканина',thread:'🔵 Нитки',hardware:'🟡 Фурнітура',branding:'🟠 Брендування'};
-const DIR_TAGS   = {fabric:'dtag-fabric',thread:'dtag-thread',hardware:'dtag-hardware',branding:'dtag-branding'};
+const DIR_LABELS = {fabric:'🟢 Тканина',branding:'🟠 Брендування'};
+const DIR_TAGS   = {fabric:'dtag-fabric',branding:'dtag-branding'};
 
 // ════════════════════════════════════════════════
 //  HELPERS
@@ -820,12 +907,12 @@ const todayStr = () => new Date().toISOString().slice(0,10);
 const fmtD = d => { if(!d) return '—'; const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}); };
 const fmtDFull = d => { if(!d) return '—'; const dt = new Date(d+'T00:00:00'); return dt.toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'}); };
 const isOver = o => !['done','closed'].includes(o.status) && o.deadline && o.deadline < todayStr();
-const SLABELS = {new:'🔴 Не почато',rozkroi:'🟠 Розкрій',shveika:'🟡 Цех',done:'🟢 Готово',closed:'⚫ Закрито'};
-const SCLASS  = {new:'sb-new',rozkroi:'sb-rozkroi',shveika:'sb-shveika',done:'sb-done',closed:'sb-closed'};
+const SLABELS = {new:'🔴 Не почато',sublimation:'🟣 Сублімація',rozkroi:'🟠 Розкрій',shveika:'🟡 Цех',done:'🟢 Готово',closed:'⚫ Закрито'};
+const SCLASS  = {new:'sb-new',sublimation:'sb-sublimation',rozkroi:'sb-rozkroi',shveika:'sb-shveika',done:'sb-done',closed:'sb-closed'};
 // Зворотній маппінг: українська назва → внутрішній код
 const SLABELS_REV = {};
 Object.entries(SLABELS).forEach(([k,v]) => { SLABELS_REV[v.replace(/^\S+\s/,'')] = k; SLABELS_REV[v] = k; });
-SLABELS_REV['Не почато'] = 'new'; SLABELS_REV['Розкрій'] = 'rozkroi';
+SLABELS_REV['Не почато'] = 'new'; SLABELS_REV['Сублімація'] = 'sublimation'; SLABELS_REV['Розкрій'] = 'rozkroi';
 SLABELS_REV['Цех'] = 'shveika'; SLABELS_REV['Готово'] = 'done'; SLABELS_REV['Закрито'] = 'closed';
 // Нормалізація статусу з Sheets (може бути укр. текст або внутрішній код)
 function normalizeStatus(s) { return SLABELS_REV[s] || SLABELS_REV[String(s).trim()] || s || 'new'; }
@@ -844,10 +931,11 @@ function goTab(tab, btn) {
   document.getElementById('page-'+tab).classList.add('active');
   btn.classList.add('active');
   if(tab==='orders'){renderStats();renderOrders();renderCalendar();}
+  if(tab==='sublimation') renderWorkshop('sublimation');
   if(tab==='rozkroi') renderWorkshop('rozkroi');
   if(tab==='tsekh')   renderWorkshop('tsekh');
   if(tab==='archive') renderArchive();
-  if(tab==='vt')      renderVt();
+  if(tab==='vt')      { setVtType(currentVtType); }
   if(tab==='directory') renderDir();
 }
 
@@ -856,11 +944,11 @@ function goTab(tab, btn) {
 // ════════════════════════════════════════════════
 function renderStats() {
   const active = DB.orders.filter(o=>o.status!=='closed');
-  const tier   = active.filter(o=>o.tier);
+  const tier   = active.filter(o=>o.tier||o.teams);
   const counts = [
     { lbl:'Всього',    cls:'c-all',  fn: l=>l.length },
     { lbl:'Не почато', cls:'c-new',  fn: l=>l.filter(o=>o.status==='new').length },
-    { lbl:'В роботі',  cls:'c-work', fn: l=>l.filter(o=>['rozkroi','shveika'].includes(o.status)).length },
+    { lbl:'В роботі',  cls:'c-work', fn: l=>l.filter(o=>['sublimation','rozkroi','shveika'].includes(o.status)).length },
     { lbl:'Готово',    cls:'c-done', fn: l=>l.filter(o=>o.status==='done').length },
     { lbl:'Протерм.',  cls:'c-over', fn: l=>l.filter(o=>isOver(o)).length },
   ];
@@ -886,13 +974,17 @@ function setFilter(f, btn) {
 
 function isOrderInTsekh(o) {
   return ['rozkroi','shveika'].includes(o.status) &&
-    o.products.some(p => p.sizes.some(s => isTsekhSizeVisible(s)));
+    o.products.some(p => p.sizes.some(s => isTsekhSizeVisible(s, o.status)));
 }
 
-function isTsekhSizeVisible(s) {
+function isTsekhSizeVisible(s, orderStatus) {
   const cut  = s.cut||0;
   const done = s.done||0;
-  return done < s.qty && (cut > 0 || done > 0);
+  if(done >= s.qty) return false; // повністю пошито — не показуємо
+  // Якщо замовлення вручну переведено в shveika — показуємо всі невиконані
+  if(orderStatus === 'shveika') return true;
+  // Інакше — тільки де вже є прогрес розкрою або пошиття
+  return cut > 0 || done > 0;
 }
 
 // ════════════════════════════════════════════════
@@ -913,12 +1005,135 @@ function toggleCreate() {
   }
 }
 
+function setOrderType(type) {
+  if(currentOrderType === type) return;
+  currentOrderType = type;
+  // Update button states
+  ['sewing','tier','teams'].forEach(t => {
+    const btn = document.getElementById('otype-'+t);
+    if(!btn) return;
+    btn.className = 'otype-btn' + (type===t ? ' active-'+t : '');
+  });
+  // Clear product blocks — list changes per type
+  const pc = document.getElementById('prod-container');
+  if(pc && pc.children.length) {
+    pc.innerHTML = '';
+    prodBlockCount = 0;
+  }
+}
+
+function setVtType(type) {
+  currentVtType = type;
+  const styles = {tier:'st-tier', sewing:'st-sewing', teams:'st-teams'};
+  ['tier','sewing','teams'].forEach(t => {
+    const b = document.getElementById('vstab-'+t);
+    if(!b) return;
+    b.className = 'vt-stab' + (t===type ? ' '+styles[t] : '');
+  });
+  renderVt();
+}
+
 function toggleVtForm() {
   const hdr = document.getElementById('vtFormHdr');
   const body = document.getElementById('vtFormBody');
   const open = body.classList.toggle('open');
   hdr.classList.toggle('open', open);
   hdr.classList.toggle('closed', !open);
+  if(open) { vtPopulateFormSelects('vt'); }
+  // label shows current catalog
+  const lblMap={tier:'⬡ TIER',sewing:'🧵 Швейка',teams:'👥 Команди'};
+  const hdrLbl=document.querySelector('#vtFormHdr .create-header-label');
+  if(hdrLbl) hdrLbl.textContent='➕ Додати виріб — '+(lblMap[currentVtType]||currentVtType);
+}
+
+// Заповнення selects тканин і брендування у формі (prefix='vt' або 'vav-ID')
+function vtPopulateFormSelects(prefix) {
+  const fabSel   = document.getElementById(prefix+'-fabric');
+  const bSel     = document.getElementById(prefix+'-brand-code');
+
+  // ── Тканини: унікальні по name (select назви) ──
+  if(fabSel && fabSel.options.length <= 1) {
+    const seen = new Set();
+    DB.directory.fabric.forEach(f => {
+      if(seen.has(f.name)) return;
+      seen.add(f.name);
+      const o = document.createElement('option');
+      o.value       = f.name;
+      o.textContent = f.name;
+      fabSel.appendChild(o);
+    });
+  }
+
+  // ── Брендування ──
+  if(bSel && bSel.options.length <= 1) {
+    const brands = DB.directory.branding || [];
+    brands.forEach(b => {
+      const o = document.createElement('option');
+      o.value = b.code||b.name;
+      o.dataset.mat = b.mat||b.name;
+      o.textContent = (b.code&&b.code!=='-'?b.code+' — ':'')+b.name;
+      bSel.appendChild(o);
+    });
+  }
+}
+
+function vtFabricChange(prefix) {
+  const sel    = document.getElementById(prefix+'-fabric');
+  const artEl  = document.getElementById(prefix+'-art');
+  const colSel = document.getElementById(prefix+'-color');
+  const opt    = sel.options[sel.selectedIndex];
+
+  // Скидаємо артикул і кольори
+  if(artEl) { artEl.value = ''; artEl.disabled = true; }
+  if(colSel) { colSel.innerHTML='<option value="">— колір —</option>'; colSel.className=''; }
+
+  if(!opt || !opt.value) return;
+
+  // Всі записи з цією назвою тканини
+  const entries = DB.directory.fabric.filter(f => f.name === opt.value);
+  const colors  = entries.map(f => f.color).filter(Boolean);
+
+  if(colSel) {
+    colors.forEach(clr => {
+      const o = document.createElement('option'); o.value=clr; o.textContent=clr;
+      colSel.appendChild(o);
+    });
+    if(colors.length === 1) {
+      colSel.value = colors[0];
+      colSel.classList.add('input-auto');
+      // Одразу заповнюємо артикул для єдиного кольору
+      vtColorChange(prefix);
+    }
+  }
+}
+
+// Викликається при виборі кольору → артикул з конкретного запису
+function vtColorChange(prefix) {
+  const fabSel = document.getElementById(prefix+'-fabric');
+  const colSel = document.getElementById(prefix+'-color');
+  const artEl  = document.getElementById(prefix+'-art');
+  if(!fabSel || !colSel || !artEl) return;
+
+  const fabName = fabSel.value;
+  const color   = colSel.value;
+  if(!fabName || !color) {
+    artEl.value = '';
+    artEl.disabled = true;
+    return;
+  }
+  const entry = DB.directory.fabric.find(f => f.name===fabName && f.color===color);
+  artEl.value    = entry ? (entry.code||'') : '';
+  artEl.disabled = true; // завжди readonly — заповнюється тільки автоматично
+}
+
+function vtBrandChange(prefix) {
+  const sel   = document.getElementById(prefix+'-brand-code');
+  const matEl = document.getElementById(prefix+'-brand-mat');
+  const opt   = sel.options[sel.selectedIndex];
+  if(matEl) {
+    matEl.value    = (opt && opt.dataset.mat) ? opt.dataset.mat : '';
+    matEl.disabled = true; // завжди auto-filled
+  }
 }
 function toggleDirForm() {
   const hdr = document.getElementById('dirFormHdr');
@@ -937,8 +1152,13 @@ function addProdBlock() {
   div.className = 'prod-block';
   div.id = id;
 
-  // unique names from DB.vtProducts
-  const names = [...new Set(DB.vtProducts.map(p=>p.name))].sort();
+  // Filter vtProducts by currentOrderType
+  // type field: 'tier'|'teams'|'sewing'; default undefined = 'tier'
+  const filtered = DB.vtProducts.filter(p => {
+    const t = p.type || 'tier';
+    return t === currentOrderType;
+  });
+  const names = [...new Set(filtered.map(p=>p.name))].sort();
   const nameOpts = names.map(n=>`<option value="${n}">${n}</option>`).join('');
 
   div.innerHTML = `
@@ -967,7 +1187,7 @@ function addProdBlock() {
 
 function onPbName(id) {
   const name = document.getElementById(id+'-name').value;
-  const prods = DB.vtProducts.filter(p=>p.name===name);
+  const prods = DB.vtProducts.filter(p=>p.name===name && (p.type||'tier')===currentOrderType);
   const varSel = document.getElementById(id+'-var');
   varSel.innerHTML = '<option value="">— Варіант —</option>';
   prods.forEach(p => {
@@ -1032,7 +1252,8 @@ function submitOrder() {
   const newOrder = {
     id:nextOrderId++, no:nextOrderNo++,
     created:todayStr(), name, deadline,
-    tier: document.getElementById('ch-tier').checked,
+    tier:  currentOrderType === 'tier',
+    teams: currentOrderType === 'teams',
     status:'new', workStart:'', workEnd:'', products,
     comment: document.getElementById('f-comment')?.value.trim()||''
   };
@@ -1044,7 +1265,7 @@ function submitOrder() {
 
 function resetForm(){
   ['f-name','f-deadline','f-comment'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';}); 
-  document.getElementById('ch-tier').checked=false;
+  setOrderType('sewing');
   document.getElementById('prod-container').innerHTML='';
   document.getElementById('form-err').textContent='';
   prodBlockCount=0;
@@ -1062,6 +1283,7 @@ function renderOrders() {
   let list = DB.orders.filter(o=>o.status!=='closed');
 
   if(currentFilter==='overdue') list = list.filter(o=>isOver(o));
+  else if(currentFilter==='sublimation') list = list.filter(o=>o.status==='sublimation');
   else if(currentFilter==='closed') list = DB.orders.filter(o=>o.status==='closed');
   else if(currentFilter==='shveika') list = list.filter(o=>isOrderInTsekh(o));
   else if(currentFilter!=='all') list = list.filter(o=>o.status===currentFilter);
@@ -1092,7 +1314,7 @@ function buildOrderRow(o) {
   const over = isOver(o);
   const dispStatus = over ? 'overdue' : o.status;
   const s = o.status;
-  const tierTag = o.tier ? `<span class="tag-tier">TIER</span>` : '';
+  const tierTag = o.tier ? `<span class="tag-tier">TIER</span>` : o.teams ? `<span class="tag-teams">КОМАНДИ</span>` : '';
 
   // Deadline warning: дедлайн раніше кінця виробництва
   const dlWarn = (o.workEnd && o.deadline && o.deadline < o.workEnd);
@@ -1108,8 +1330,9 @@ function buildOrderRow(o) {
   let rowClass = `order-card s-${s}`;
   if(over) rowClass += ' is-overdue';
   if(o.tier) rowClass += ' is-tier';
+  if(o.teams) rowClass += ' is-teams';
 
-  const statusOpts = ['new','rozkroi','shveika','done','closed'].map(sv=>
+  const statusOpts = ['new','sublimation','rozkroi','shveika','done','closed'].map(sv=>
     `<option value="${sv}" ${o.status===sv?'selected':''}>${SLABELS[sv]}</option>`).join('');
 
   // Conflict message HTML
@@ -1259,10 +1482,18 @@ function updStatus(id, val) {
     o.products.forEach(p=>{ if(!p.prodStage) p.prodStage='rozkroi'; });
   }
   if(val==='shveika') {
-    // При прямому встановленні Цеху — вважаємо що весь розкрій виконано
+    // При ручному переході в Цех — prodStage оновлюємо, cut не чіпаємо
+    // isTsekhSizeVisible з orderStatus='shveika' покаже всі невиконані
+    o.products.forEach(p=>{ p.prodStage = 'shveika'; });
+  }
+  if(val==='done') {
+    // При прямому встановленні Готово — все вважається зшитим
     o.products.forEach(p=>{
-      p.prodStage = 'shveika';
-      p.sizes.forEach(s=>{ s.cut = s.cut || s.qty; });
+      p.prodStage = 'done';
+      p.sizes.forEach(s=>{
+        s.cut  = s.cut  || s.qty;
+        s.done = s.qty;
+      });
     });
   }
   // Зберегти статус і вироби в Sheets
@@ -1293,6 +1524,7 @@ function buildCalMonth(year, rawMonth) {
   const daysInMo = new Date(yr,mo+1,0).getDate();
   const td = todayStr();
   const orders = DB.orders.filter(o=>o.workStart&&o.workEnd&&o.status!=='closed');
+  const allActive = DB.orders.filter(o=>!['done','closed'].includes(o.status));
   const dows = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
 
   let html = `<div class="cal-month">
@@ -1308,6 +1540,8 @@ function buildCalMonth(year, rawMonth) {
     const matched = orders.filter(o=>ds>=o.workStart&&ds<=o.workEnd);
     const hasTier = matched.some(o=>o.tier);
     const hasSh   = matched.some(o=>!o.tier);
+    const deadlines = allActive.filter(o=>o.deadline===ds);
+    const hasDeadline = deadlines.length > 0;
 
     // Перевірка конфліктів: чи є на цей день більше одного замовлення
     // або є замовлення що конфліктує з іншим
@@ -1320,15 +1554,21 @@ function buildCalMonth(year, rawMonth) {
     else if(hasTier) cls+=' ev-tier';
     else if(hasSh) cls+=' ev-sh';
     if(hasConflict) cls+=' conflict-day';
+    if(hasDeadline) cls+=' has-deadline has-ev';
 
-    const tip = matched.map(o=>`${String(o.no).padStart(3,'0')} ${o.name}`).join('\n');
-    const click = matched.length ? `onclick="calClick([${matched.map(o=>o.id).join(',')}])"` : '';
+    const allDayIds = [...new Set([...matched.map(o=>o.id),...deadlines.map(o=>o.id)])];
+    const tip = [
+      ...matched.map(o=>`\uD83D\uDCE6 ${String(o.no).padStart(3,'0')} ${o.name}`),
+      ...deadlines.filter(o=>!matched.find(m=>m.id===o.id)).map(o=>`\u23F0 Дедлайн: ${String(o.no).padStart(3,'0')} ${o.name}`)
+    ].join('\n');
+    const click = allDayIds.length ? `onclick="calClick([${allDayIds.join(',')}])"` : '';
     html+=`<div class="${cls}" ${click} ${tip?`title="${tip}"`:''}>${day}</div>`;
   }
   html+=`</div></div>
     <div class="cal-legend">
       <div class="cal-leg-item"><div class="cal-leg-dot leg-tier"></div>TIER</div>
       <div class="cal-leg-item"><div class="cal-leg-dot leg-sh"></div>Швейка</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--red)"></div>Дедлайн</div>
     </div>
   </div>`;
   return html;
@@ -1353,25 +1593,32 @@ function calClick(ids) {
 //  WORKSHOP (Розкрій / Цех)
 // ════════════════════════════════════════════════
 function renderWorkshop(page) {
-  const nextStatus = page==='rozkroi' ? 'shveika' : 'done';
-  const nextLabel  = page==='rozkroi' ? '→ Цех' : '→ Готово';
-  const btnCls     = page==='rozkroi' ? 'btn-orange' : 'btn-green';
-  const targetStage = page==='rozkroi' ? 'rozkroi' : 'shveika';
+  const nextStatus = page==='sublimation' ? 'sublimation' : page==='rozkroi' ? 'shveika' : 'done';
+  const nextLabel  = page==='sublimation' ? '→ Розкрій' : page==='rozkroi' ? '→ Цех' : '→ Готово';
+  const btnCls     = page==='sublimation' ? 'btn-sub' : page==='rozkroi' ? 'btn-orange' : 'btn-green';
+  const targetStage = page==='sublimation' ? 'sublimation' : page==='rozkroi' ? 'rozkroi' : 'shveika';
 
   // Розкрій: замовлення зі статусом rozkroi що мають хоча б 1 виріб ще не в Цеху
   // Цех: замовлення (rozkroi або shveika) що мають хоча б 1 виріб зі стадією shveika
   const list = DB.orders
     .filter(o => {
       if(['done','closed'].includes(o.status)) return false;
+      if(page==='sublimation') {
+        return o.status === 'sublimation' &&
+          o.products.some(p => p.sizes.some(s => (s.sub||0) < s.qty));
+      }
       if(page==='rozkroi') {
-        // Розкрій: статус rozkroi або shveika, і є хоч 1 нерозкроєний розмір
-        return ['rozkroi','shveika'].includes(o.status) &&
-          o.products.some(p => p.sizes.some(s => (s.cut||0) < s.qty));
+        // Розкрій: тільки статус rozkroi або sublimation (shveika — вже в цеху)
+        if(o.status === 'rozkroi')
+          return o.products.some(p => p.sizes.some(s => (s.cut||0) < s.qty));
+        if(o.status === 'sublimation')
+          return o.products.some(p => p.sizes.some(s => (s.sub||0) > (s.cut||0)));
+        return false;
       }
       if(page==='tsekh') {
         // Цех: показуємо і активну роботу, і вже частково готові позиції
-        return ['rozkroi','shveika'].includes(o.status) &&
-          o.products.some(p => p.sizes.some(s => isTsekhSizeVisible(s)));
+        return ['rozkroi','shveika','sublimation'].includes(o.status) &&
+          o.products.some(p => p.sizes.some(s => isTsekhSizeVisible(s, o.status)));
       }
       return false;
     })
@@ -1390,14 +1637,18 @@ function renderWorkshop(page) {
     const relevantProds = o.products
       .map((p, prodIdx) => ({ p, prodIdx }))
       .filter(({ p }) =>
-        page==='rozkroi'
-          ? p.sizes.some(s => (s.cut||0) < s.qty)
-          : p.sizes.some(s => isTsekhSizeVisible(s))
+        page==='sublimation'
+          ? p.sizes.some(s => (s.sub||0) < s.qty)
+          : page==='rozkroi'
+            ? (o.status==='sublimation'
+                ? p.sizes.some(s => (s.sub||0) > (s.cut||0))
+                : p.sizes.some(s => (s.cut||0) < s.qty))
+            : p.sizes.some(s => isTsekhSizeVisible(s, o.status))
       );
     return `<div class="ws-order-card" id="ws${page}${o.id}">
       <div class="ws-order-head" onclick="document.getElementById('ws${page}${o.id}').classList.toggle('open')">
         <div class="ws-order-no">${String(o.no).padStart(3,'0')}</div>
-        <div class="ws-order-name">${o.name}${o.tier?` <span class="tag-tier">TIER</span>`:''}</div>
+        <div class="ws-order-name">${o.name}${o.tier?` <span class="tag-tier">TIER</span>`:o.teams?` <span class="tag-teams">КОМАНДИ</span>`:''}</div>
         <div class="ws-order-start">${o.workStart?'🗓 '+fmtDFull(o.workStart):''}</div>
         <div class="ws-order-chevron">▾</div>
       </div>
@@ -1424,17 +1675,42 @@ function buildWsProd(o, p, prodIdx, nextStatus, nextLabel, btnCls, page) {
 
   const sizeRows = p.sizes.map((s,si)=>{
     const iid = `qty-${page}-${o.id}-${prodIdx}-${si}`;
-    if(page==='rozkroi') {
-      // Розкрій: показуємо тільки нерозкроєні розміри
-      const cut = s.cut||0;
-      if(cut >= s.qty) return ''; // повністю розкроєний — не показуємо
-      const remaining = s.qty - cut;
-      const progress = cut;
-      const fracCls = cut > 0 ? 'done-fraction partial' : 'done-fraction';
+    if(page==='sublimation') {
+      const sub = s.sub||0;
+      if(sub >= s.qty) return '';
+      const remaining = s.qty - sub;
+      const fracCls = sub > 0 ? 'done-fraction partial' : 'done-fraction';
       return `<tr>
         <td>${s.sz}</td>
         <td>${s.sex}</td>
-        <td><span class="${fracCls}">${cut}/${s.qty}</span></td>
+        <td><span class="${fracCls}">${sub}/${s.qty}</span></td>
+        <td style="display:flex;align-items:center;gap:6px">
+          <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="Сублімовано…" class="ws-done-input">
+          <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},${prodIdx},${si},'sublimation','sublimation',document.getElementById('${iid}').value)">
+            ${nextLabel}</button>
+        </td>
+      </tr>`;
+    }
+    if(page==='rozkroi') {
+      const cut = s.cut||0;
+      const sub = s.sub||0;
+      // Для sublimation-замовлень: показуємо тільки де sub > cut
+      if(o.status === 'sublimation' && sub <= cut) return '';
+      // Для звичайних: показуємо де cut < qty
+      if(o.status !== 'sublimation' && cut >= s.qty) return '';
+      // Ліміт: для sublimation — тільки просублімовані; для решти — вся кількість
+      const available = o.status === 'sublimation' ? sub : s.qty;
+      const remaining = available - cut;
+      if(remaining <= 0) return '';
+      const fracCls = cut > 0 ? 'done-fraction partial' : 'done-fraction';
+      const fracLabel = o.status === 'sublimation'
+        ? `<span class="${fracCls}">розкр. ${cut}/${sub}</span>
+           <span style="font-size:9px;color:var(--text-dim);display:block">субл. ${sub}/${s.qty}</span>`
+        : `<span class="${fracCls}">${cut}/${s.qty}</span>`;
+      return `<tr>
+        <td>${s.sz}</td>
+        <td>${s.sex}</td>
+        <td>${fracLabel}</td>
         <td style="display:flex;align-items:center;gap:6px">
           <input id="${iid}" type="number" min="1" max="${remaining}" placeholder="Розкроєно…" class="ws-done-input">
           <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},${prodIdx},${si},'shveika','rozkroi',document.getElementById('${iid}').value)">
@@ -1445,11 +1721,17 @@ function buildWsProd(o, p, prodIdx, nextStatus, nextLabel, btnCls, page) {
       // Цех: показуємо все, де вже є прогрес пошиття або є що шити далі
       const cut  = s.cut||0;
       const done = s.done||0;
-      if(!isTsekhSizeVisible(s)) return '';
-      const remaining = Math.max(cut - done, 0);
-      const fracCls = done > 0 ? 'done-fraction partial' : 'done-fraction';
+      const sub  = s.sub||0;
+      if(!isTsekhSizeVisible(s, o.status)) return '';
+      // Якщо статус shveika і cut=0 — вважаємо весь обсяг доступним для пошиття
+      const available = o.status === 'shveika' ? Math.max(cut, s.qty) : cut;
+      const remaining = Math.max(available - done, 0);
+      const fracCls = done >= s.qty ? 'done-fraction full' : done > 0 ? 'done-fraction partial' : 'done-fraction';
+      // Інфо рядки: розкрій і сублімація
       const cutInfo = cut > 0 && cut < s.qty
-        ? `<span style="font-size:9px;color:#4f8ef7;margin-left:4px">(розкр. ${cut}/${s.qty})</span>` : '';
+        ? `<span style="font-size:9px;color:#4f8ef7;display:block">розкр. ${cut}/${s.qty}</span>` : '';
+      const subInfo = sub > 0 && o.status === 'sublimation'
+        ? `<span style="font-size:9px;color:var(--purple);display:block">субл. ${sub}/${s.qty}</span>` : '';
       const actionHtml = remaining > 0
         ? `<input id="${iid}" type="number" min="1" max="${remaining}" placeholder="Зшито…" class="ws-done-input">
           <button class="btn btn-sm ${btnCls}" onclick="moveSize(${o.id},${prodIdx},${si},'done','tsekh',document.getElementById('${iid}').value)">
@@ -1460,7 +1742,7 @@ function buildWsProd(o, p, prodIdx, nextStatus, nextLabel, btnCls, page) {
         <td>${s.sex}</td>
         <td>
           <span class="${fracCls}">${done}/${s.qty}</span>
-          ${cutInfo}
+          ${cutInfo}${subInfo}
         </td>
         <td style="display:flex;align-items:center;gap:6px">
           ${actionHtml}
@@ -1502,15 +1784,38 @@ function moveSize(orderId, prodIdx, sizeIdx, nextStatus, page, qtyVal) {
 
   const qty = parseInt(qtyVal)||0;
 
+  if(page === 'sublimation') {
+    if(qty <= 0) { renderWorkshop(page); return; }
+    s.sub = Math.min(s.qty, (s.sub||0) + qty);
+    const allSubDone = o.products.every(pr => pr.sizes.every(sz => (sz.sub||0) >= sz.qty));
+    if(allSubDone && o.status === 'sublimation') {
+      o.status = 'rozkroi';
+      syncField(o.no, 'status', SLABELS['rozkroi']);
+    }
+    syncField(o.no, 'productsJson', JSON.stringify(o.products));
+    renderStats(); renderOrders(); renderCalendar();
+    renderWorkshop('sublimation');
+    if(allSubDone) renderWorkshop('rozkroi');
+    return;
+  }
+
 if(nextStatus === 'shveika') {
   if (qty <= 0) { renderWorkshop(page); return; }
-  s.cut = Math.min(s.qty, (s.cut || 0) + qty);
+  // Для sublimation-замовлень ліміт = sub, для решти = qty
+  const maxCut = o.status === 'sublimation' ? (s.sub||0) : s.qty;
+  s.cut = Math.min(maxCut, (s.cut || 0) + qty);
   if (s.cut > 0) p.prodStage = 'shveika';
-  // Статус замовлення → Цех тільки коли ВСІ продукти ВСІ розміри повністю розкроєні
-  const allFullyCut = o.products.every(pr => pr.sizes.every(sz => (sz.cut||0) >= sz.qty));
-  if (allFullyCut && o.status === 'rozkroi') {
-    o.status = 'shveika';
-    syncField(o.no, 'status', SLABELS['shveika']);
+  // Для sublimation-замовлення НЕ міняємо статус при розкрої —
+  // статус міняється тільки коли вся сублімація завершена (в moveSize sublimation)
+  // Для rozkroi: переходимо в shveika коли все розкроєно
+  if (o.status === 'rozkroi') {
+    const allFullyCut = o.products.every(pr =>
+      pr.sizes.every(sz => (sz.cut||0) >= sz.qty)
+    );
+    if (allFullyCut) {
+      o.status = 'shveika';
+      syncField(o.no, 'status', SLABELS['shveika']);
+    }
   }
 
   } else if(nextStatus==='done') {
@@ -1534,7 +1839,8 @@ if(nextStatus === 'shveika') {
   syncField(o.no, 'productsJson', JSON.stringify(o.products));
   renderStats(); renderOrders(); renderCalendar();
   renderWorkshop(page);
-  if(page==='rozkroi' && nextStatus==='shveika') renderWorkshop('tsekh');
+  // БАГ 2: завжди оновлюємо цех після розкрою (навіть якщо замовлення ще в sublimation)
+  if(nextStatus==='shveika') renderWorkshop('tsekh');
 }
 
 // ════════════════════════════════════════════════
@@ -1568,7 +1874,7 @@ function renderArchive() {
           <div class="arch-order" id="ao${o.id}">
             <div class="arch-order-head" onclick="this.closest('.arch-order').classList.toggle('open')">
               <div class="arch-order-no">${String(o.no).padStart(3,'0')}</div>
-              <div class="arch-order-name">${o.name}${o.tier?` <span class="tag-tier">TIER</span>`:''}</div>
+              <div class="arch-order-name">${o.name}${o.tier?` <span class="tag-tier">TIER</span>`:o.teams?` <span class="tag-teams">КОМАНДИ</span>`:''}</div>
               <div class="arch-order-dl">${fmtDFull(o.deadline)}</div>
               ${sBadge('closed')}
               <div class="arch-order-chev">▾</div>
@@ -1601,12 +1907,12 @@ function addVtItem() {
   if(!name||!code){err.textContent='❗ Обов\'язкові поля';return;}
   err.textContent='';
   const newItem = {
-    id: Date.now(), name, code,
+    id: Date.now(), name, code, type: currentVtType,
     variants:[{
       sex:      document.getElementById('vt-sex').value,
       fabric:   document.getElementById('vt-fabric').value,
       fabricArt:document.getElementById('vt-art').value,
-      color:    document.getElementById('vt-color').value,
+      color:    document.getElementById('vt-color').value||(document.getElementById('vt-color').tagName==='INPUT'?document.getElementById('vt-color').value:''),
       barcode:  document.getElementById('vt-barcode').value,
       brandCode:document.getElementById('vt-brand-code').value,
       brandMat: document.getElementById('vt-brand-mat').value,
@@ -1614,34 +1920,139 @@ function addVtItem() {
   };
   DB.vtProducts.push(newItem);
   apiPost({ action:'addVtProduct', item: newItem }); // зберегти в Sheets
-  ['vt-name','vt-code','vt-sex','vt-fabric','vt-art','vt-color','vt-barcode','vt-brand-code','vt-brand-mat']
-    .forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['vt-name','vt-code','vt-barcode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';}); 
+  ['vt-sex','vt-fabric','vt-brand-code'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  const _ac = document.getElementById('vt-color'); if(_ac){ _ac.innerHTML='<option value="">—</option>'; _ac.className=''; }
+  ['vt-art','vt-brand-mat'].forEach(id=>{const e=document.getElementById(id);if(e){e.value='';e.disabled=true;}});
   renderVt();
 }
 
 function renderVt() {
   const el = document.getElementById('vt-list');
-  document.getElementById('vt-count').textContent = DB.vtProducts.length + ' виробів';
-  if(!DB.vtProducts.length){el.innerHTML='<div class="empty-state">Немає виробів</div>';return;}
-  el.innerHTML = DB.vtProducts.map(p=>`
-    <div class="vt-item" id="vti${p.id}">
-      <div class="vt-head" onclick="document.getElementById('vti${p.id}').classList.toggle('open')">
+  const filtered = DB.vtProducts.filter(p=>(p.type||'tier')===currentVtType);
+  document.getElementById('vt-count').textContent = filtered.length + ' виробів';
+  if(!filtered.length){el.innerHTML='<div class="empty-state">Немає виробів у цьому каталозі</div>';return;}
+  el.innerHTML = filtered.map(p=>{
+    const pid = p.id;
+    const varHtml = p.variants.map((v,vi)=>`
+      <div class="variant-row">
+        ${[['Стать',v.sex],['Колір',v.color],['Тканина',v.fabric],['Артикул',v.fabricArt],
+           ['Штрихкод',v.barcode],
+           ['Бренд',v.brandCode&&v.brandCode!=='-'?v.brandCode:'—'],
+           ['Матеріал',v.brandMat&&v.brandMat!=='-'?v.brandMat:'—']]
+          .map(([l,val])=>`<div class="vr-field"><div class="vr-lbl">${l}</div><div class="vr-val">${val||'—'}</div></div>`).join('')}
+        <button class="vr-del" title="Видалити варіант" onclick="vtDeleteVariant(${pid},${vi})">✕</button>
+      </div>
+    `).join('');
+
+    // add-variant inline form
+    const avid = 'vav-'+pid;
+    const avForm = `
+      <div class="vav-form" id="${avid}">
+        <div class="vav-title">+ Новий варіант</div>
+        <div class="form-row" style="grid-template-columns:120px 1fr 1fr 1fr 1fr">
+          <div class="fg"><label class="lbl">Стать</label>
+            <select id="${avid}-sex">
+              <option value="">—</option><option>Жіноча</option><option>Чоловіча</option><option>Унісекс</option><option>Дитяча</option>
+            </select>
+          </div>
+          <div class="fg"><label class="lbl">Тканина</label>
+            <select id="${avid}-fabric" onchange="vtFabricChange('${avid}')">
+              <option value="">— з довідника —</option>
+            </select>
+          </div>
+          <div class="fg"><label class="lbl">Колір</label>
+            <select id="${avid}-color" onchange="vtColorChange('${avid}')"><option value="">—</option></select>
+          </div>
+          <div class="fg"><label class="lbl">Артикул</label>
+            <input type="text" id="${avid}-art" class="input-auto" readonly disabled>
+          </div>
+          <div class="fg"><label class="lbl">Штрихкод</label>
+            <input type="text" id="${avid}-barcode" placeholder="RG001BN...">
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr auto">
+          <div class="fg"><label class="lbl">Брендування (код)</label>
+            <select id="${avid}-brand-code" onchange="vtBrandChange('${avid}')">
+              <option value="-">— без брендування —</option>
+            </select>
+          </div>
+          <div class="fg"><label class="lbl">Матеріал брендування</label>
+            <input type="text" id="${avid}-brand-mat" class="input-auto" readonly disabled>
+          </div>
+          <div class="fg" style="justify-content:flex-end">
+            <label class="lbl">&nbsp;</label>
+            <div class="row">
+              <button class="btn btn-primary btn-sm" onclick="vtSubmitVariant(${pid})">Додати варіант</button>
+              <button class="btn btn-sm" onclick="document.getElementById('${avid}').classList.remove('open')">Скасувати</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    return `
+    <div class="vt-item" id="vti${pid}">
+      <div class="vt-head" onclick="document.getElementById('vti${pid}').classList.toggle('open')">
         <div class="vt-name">${p.name}</div>
         <span class="vt-cnt">${p.variants.length} вар.</span>
         <span class="vt-code">${p.code}</span>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);letter-spacing:.06em">${
+          p.type==='teams'?'👥':p.type==='sewing'?'🧵':'⬡'
+        }</span>
         <div class="vt-head-chev">▾</div>
       </div>
       <div class="vt-body">
-        ${p.variants.map(v=>`
-          <div class="variant-row">
-            ${[['Стать',v.sex],['Колір',v.color],['Тканина',v.fabric],['Артикул',v.fabricArt],
-               ['Штрихкод',v.barcode],['Брендування',v.brandCode&&v.brandCode!=='-'?v.brandCode:'—'],['Матеріал бренд.',v.brandMat&&v.brandMat!=='-'?v.brandMat:'—']]
-              .map(([l,val])=>`<div class="vr-field"><div class="vr-lbl">${l}</div><div class="vr-val">${val||'—'}</div></div>`).join('')}
-          </div>
-        `).join('')}
+        ${varHtml}
+        <div style="margin-top:6px">
+          <button class="btn-add-row" onclick="vtShowAddVariant(${pid})">+ Додати варіант</button>
+        </div>
+        ${avForm}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
+//  VT: VARIANT CRUD
+// ════════════════════════════════════════════════
+function vtDeleteVariant(pid, vi) {
+  const p = DB.vtProducts.find(x=>x.id===pid);
+  if(!p) return;
+  if(p.variants.length<=1){ alert('Не можна видалити останній варіант'); return; }
+  if(!confirm('Видалити цей варіант?')) return;
+  p.variants.splice(vi,1);
+  apiPost({ action:'updateVtVariants', id: pid, variantsJson: JSON.stringify(p.variants) });
+  renderVt();
+}
+
+function vtShowAddVariant(pid) {
+  const avid = 'vav-'+pid;
+  const form = document.getElementById(avid);
+  if(!form) return;
+  form.classList.add('open');
+  // populate selects from directory
+  vtPopulateFormSelects(avid);
+}
+
+function vtSubmitVariant(pid) {
+  const p = DB.vtProducts.find(x=>x.id===pid);
+  if(!p) return;
+  const avid = 'vav-'+pid;
+  const g = id => { const e=document.getElementById(avid+'-'+id); return e?e.value.trim():''; };
+  const newVar = {
+    sex:       g('sex'),
+    fabric:    g('fabric')||'',
+    fabricArt: g('art'),
+    color:     g('color'),
+    barcode:   g('barcode'),
+    brandCode: g('brand-code')||'-',
+    brandMat:  g('brand-mat')||'-',
+  };
+  p.variants.push(newVar);
+  apiPost({ action:'updateVtVariants', id: pid, variantsJson: JSON.stringify(p.variants) });
+  renderVt();
+  // re-open the item
+  setTimeout(()=>{ const el=document.getElementById('vti'+pid); if(el) el.classList.add('open'); },50);
 }
 
 // ════════════════════════════════════════════════
@@ -1656,11 +2067,12 @@ function addDirItem() {
   err.textContent='';
   const newItem = {id:Date.now(), name, code,
     color: document.getElementById('dir-color').value,
-    mat:   document.getElementById('dir-mat').value,
+    mat:     document.getElementById('dir-mat').value,
+    comment: document.getElementById('dir-comment').value.trim(),
   };
   DB.directory[type].push(newItem);
   apiPost({ action:'addDirItem', type, item: newItem }); // зберегти в Sheets
-  ['dir-name','dir-code','dir-color','dir-mat'].forEach(id=>{document.getElementById(id).value='';});
+  ['dir-name','dir-code','dir-color','dir-mat','dir-comment'].forEach(id=>{document.getElementById(id).value='';});
   renderDir();
 }
 
@@ -1672,15 +2084,16 @@ function renderDir() {
       <div class="dir-title">${DIR_LABELS[type]}</div>
       <div class="dir-wrap">
         <table class="dir-table">
-          <thead><tr><th>Назва</th><th>Код</th><th>Колір</th><th>Матеріал / склад</th></tr></thead>
+          <thead><tr><th>Назва</th><th>Код</th><th>Колір</th><th>Матеріал / склад</th><th>Коментар</th></tr></thead>
           <tbody>`;
-    if(!items.length) html+=`<tr><td colspan="4" style="color:var(--text-dim);padding:10px 12px;font-size:11px">Немає записів</td></tr>`;
+    if(!items.length) html+=`<tr><td colspan="5" style="color:var(--text-dim);padding:10px 12px;font-size:11px">Немає записів</td></tr>`;
     items.forEach(i=>{
       html+=`<tr>
         <td><span class="dtag ${DIR_TAGS[type]}">${i.name}</span></td>
         <td style="font-family:var(--mono);font-size:11px;color:var(--text-dim)">${i.code}</td>
         <td>${i.color||'—'}</td>
         <td style="color:var(--text-muted)">${i.mat||'—'}</td>
+        <td style="color:var(--text-dim);font-size:11px">${i.comment||''}</td>
       </tr>`;
     });
     html+=`</tbody></table></div></div>`;
