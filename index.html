@@ -165,6 +165,11 @@ select option{background:var(--bg)}
 .input-auto{background:var(--surface2);color:var(--text-muted);cursor:default}
 select.input-auto{background:var(--surface2);color:var(--text-dim);pointer-events:none;opacity:.7}
 input[disabled],select[disabled]{opacity:.45;cursor:not-allowed;filter:brightness(.8)}
+.field-error input, .field-error select, .field-error textarea{
+  border-color:var(--red)!important;
+  box-shadow:0 0 0 1px var(--red);
+}
+.field-error .lbl{color:var(--red)!important}
 /* ── Іконка дати — біла ── */
 input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.55;cursor:pointer}
 input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
@@ -1005,6 +1010,16 @@ function toggleCreate() {
   }
 }
 
+// Підсвічує fg-блок червоним якщо err=true
+function markField(id, err) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  const fg = el.closest('.fg');
+  if(!fg) return;
+  if(err) fg.classList.add('field-error');
+  else    fg.classList.remove('field-error');
+}
+
 function setOrderType(type) {
   if(currentOrderType === type) return;
   currentOrderType = type;
@@ -1224,6 +1239,8 @@ function submitOrder() {
   const name = document.getElementById('f-name').value.trim();
   const deadline = document.getElementById('f-deadline').value;
   const err = document.getElementById('form-err');
+  markField('f-name', !name);
+  markField('f-deadline', !deadline);
   if(!name||!deadline){err.textContent='❗ Вкажи назву і дедлайн';return;}
 
   const blocks = document.querySelectorAll('.prod-block');
@@ -1249,6 +1266,7 @@ function submitOrder() {
     products.push({vtId:parseInt(vtId), name:vt.name, code:vt.code, variantIdx:parseInt(vi), sizes});
   }
   err.textContent='';
+  markField('f-name', false); markField('f-deadline', false);
   const newOrder = {
     id:nextOrderId++, no:nextOrderNo++,
     created:todayStr(), name, deadline,
@@ -1543,9 +1561,8 @@ function buildCalMonth(year, rawMonth) {
     const deadlines = allActive.filter(o=>o.deadline===ds);
     const hasDeadline = deadlines.length > 0;
 
-    // Перевірка конфліктів: чи є на цей день більше одного замовлення
-    // або є замовлення що конфліктує з іншим
-    const hasConflict = matched.length > 1 || matched.some(o=>getConflicts(o).length>0);
+    // Конфлікт = саме в цей день перетинаються 2+ замовлення
+    const hasConflict = matched.length > 1;
 
     let cls = 'cday';
     if(isToday) cls+=' today';
@@ -1904,8 +1921,10 @@ function addVtItem() {
   const name = document.getElementById('vt-name').value.trim();
   const code = document.getElementById('vt-code').value.trim();
   const err  = document.getElementById('vt-err');
+  markField('vt-name', !name); markField('vt-code', !code);
   if(!name||!code){err.textContent='❗ Обов\'язкові поля';return;}
   err.textContent='';
+  markField('vt-name', false); markField('vt-code', false);
   const newItem = {
     id: Date.now(), name, code, type: currentVtType,
     variants:[{
@@ -2038,7 +2057,12 @@ function vtSubmitVariant(pid) {
   const p = DB.vtProducts.find(x=>x.id===pid);
   if(!p) return;
   const avid = 'vav-'+pid;
-  const g = id => { const e=document.getElementById(avid+'-'+id); return e?e.value.trim():''; };
+  const g  = id => { const e=document.getElementById(avid+'-'+id); return e?e.value.trim():''; };
+  const mf = (id, err) => { const e=document.getElementById(avid+'-'+id); if(!e) return; const fg=e.closest('.fg'); if(fg) fg.classList.toggle('field-error', err); };
+  const fabric = g('fabric'), color = g('color');
+  mf('fabric', !fabric); mf('color', !color);
+  if(!fabric||!color) return;
+  mf('fabric', false); mf('color', false);
   const newVar = {
     sex:       g('sex'),
     fabric:    g('fabric')||'',
@@ -2063,8 +2087,10 @@ function addDirItem() {
   const name = document.getElementById('dir-name').value.trim();
   const code = document.getElementById('dir-code').value.trim();
   const err  = document.getElementById('dir-err');
+  markField('dir-name', !name); markField('dir-code', !code);
   if(!name||!code){err.textContent='❗ Назва і код';return;}
   err.textContent='';
+  markField('dir-name', false); markField('dir-code', false);
   const newItem = {id:Date.now(), name, code,
     color: document.getElementById('dir-color').value,
     mat:     document.getElementById('dir-mat').value,
@@ -2072,7 +2098,7 @@ function addDirItem() {
   };
   DB.directory[type].push(newItem);
   apiPost({ action:'addDirItem', type, item: newItem }); // зберегти в Sheets
-  ['dir-name','dir-code','dir-color','dir-mat','dir-comment'].forEach(id=>{document.getElementById(id).value='';});
+  ['dir-name','dir-code','dir-color','dir-mat','dir-comment'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   renderDir();
 }
 
