@@ -1953,7 +1953,7 @@ function renderVt() {
   if(!filtered.length){el.innerHTML='<div class="empty-state">Немає виробів у цьому каталозі</div>';return;}
   el.innerHTML = filtered.map(p=>{
     const pid = p.id;
-    const varHtml = p.variants.map((v,vi)=>`
+    const varHtml = (Array.isArray(p.variants) ? p.variants : []).map((v,vi)=>`
       <div class="variant-row">
         ${[['Стать',v.sex],['Колір',v.color],['Тканина',v.fabric],['Артикул',v.fabricArt],
            ['Штрихкод',v.barcode],
