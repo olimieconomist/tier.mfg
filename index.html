@@ -153,7 +153,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 /* ── ПОЛЯ ── */
 .form-row{display:grid;gap:10px;margin-bottom:12px}
 .fg{display:flex;flex-direction:column;gap:5px}
-label.lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+label.lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;display:block}
 input[type=text],input[type=date],input[type=number],select,textarea{
   padding:7px 10px;background:var(--bg);
   border:1px solid var(--border2);border-radius:4px;
@@ -533,7 +533,7 @@ tbody.order-card.open .order-detail{display:table-row}
   display:none;margin-top:6px;padding:10px 12px;
   background:var(--bg);border:1px dashed var(--border2);border-radius:4px;
 }
-.inline-mat-form.open{display:grid;grid-template-columns:1fr 100px 100px auto;gap:6px;align-items:end}
+.inline-mat-form.open{display:grid;gap:6px;align-items:end;margin-top:6px}
 
 /* tag chips for dir */
 .dtag{display:inline-block;padding:1px 7px;border-radius:2px;font-size:9px;border:1px solid;margin:1px}
@@ -774,18 +774,15 @@ textarea:focus{border-color:var(--accent)}
         </div>
 
       </div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:start">
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:end">
         <div class="fg">
-          <label class="lbl">Тканина <button class="add-mat-btn" onclick="toggleInlineMat('vt-mat-form')" type="button">+ нова</button></label>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label class="lbl" style="margin:0">Тканина</label>
+            <button class="add-mat-btn" onclick="toggleInlineMat('vt-mat-form')" type="button">+ нова</button>
+          </div>
           <select id="vt-fabric" onchange="vtFabricChange('vt')">
             <option value="">— з довідника —</option>
           </select>
-          <div class="inline-mat-form" id="vt-mat-form">
-            <div class="fg"><label class="lbl">Назва</label><input type="text" id="vt-new-fab-name" placeholder="Назва тканини"></div>
-            <div class="fg"><label class="lbl">Колір</label><input type="text" id="vt-new-fab-color" placeholder="Колір"></div>
-            <div class="fg"><label class="lbl">Код</label><input type="text" id="vt-new-fab-code" placeholder="201"></div>
-            <button class="btn btn-sm btn-primary" onclick="addInlineMat('vt','fabric')" type="button">Додати</button>
-          </div>
         </div>
         <div class="fg"><label class="lbl">Колір</label>
           <select id="vt-color" onchange="vtColorChange('vt')"><option value="">—</option></select>
@@ -797,18 +794,21 @@ textarea:focus{border-color:var(--accent)}
           <input type="text" id="vt-barcode" placeholder="RG001BN...">
         </div>
       </div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;align-items:start">
+      <div class="inline-mat-form" id="vt-mat-form" style="grid-template-columns:1fr 120px 120px auto">
+        <div class="fg"><label class="lbl">Назва тканини</label><input type="text" id="vt-new-fab-name" placeholder="Назва тканини"></div>
+        <div class="fg"><label class="lbl">Колір</label><input type="text" id="vt-new-fab-color" placeholder="Колір"></div>
+        <div class="fg"><label class="lbl">Код</label><input type="text" id="vt-new-fab-code" placeholder="201"></div>
+        <button class="btn btn-sm btn-primary" onclick="addInlineMat('vt','fabric')" type="button" style="align-self:end">Додати</button>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;align-items:end">
         <div class="fg">
-          <label class="lbl">Брендування (код) <button class="add-mat-btn" onclick="toggleInlineMat('vt-brand-form')" type="button">+ нове</button></label>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label class="lbl" style="margin:0">Брендування (код)</label>
+            <button class="add-mat-btn" onclick="toggleInlineMat('vt-brand-form')" type="button">+ нове</button>
+          </div>
           <select id="vt-brand-code" onchange="vtBrandChange('vt')">
             <option value="-">— без брендування —</option>
           </select>
-          <div class="inline-mat-form" id="vt-brand-form">
-            <div class="fg"><label class="lbl">Матеріал</label><input type="text" id="vt-new-brand-name" placeholder="плівка біла"></div>
-            <div class="fg"><label class="lbl">Код</label><input type="text" id="vt-new-brand-code" placeholder="001"></div>
-            <div class="fg"></div>
-            <button class="btn btn-sm btn-primary" onclick="addInlineMat('vt','branding')" type="button">Додати</button>
-          </div>
         </div>
         <div class="fg"><label class="lbl">Матеріал брендування</label>
           <input type="text" id="vt-brand-mat" placeholder="—" class="input-auto" readonly disabled>
@@ -817,6 +817,12 @@ textarea:focus{border-color:var(--accent)}
           <label class="lbl">&nbsp;</label>
           <div class="row"><button class="btn btn-primary btn-sm" onclick="addVtItem()">Додати виріб</button><span class="err" id="vt-err"></span></div>
         </div>
+      </div>
+      <div class="inline-mat-form" id="vt-brand-form" style="grid-template-columns:1fr 120px auto auto">
+        <div class="fg"><label class="lbl">Матеріал</label><input type="text" id="vt-new-brand-name" placeholder="плівка біла"></div>
+        <div class="fg"><label class="lbl">Код</label><input type="text" id="vt-new-brand-code" placeholder="001"></div>
+        <div></div>
+        <button class="btn btn-sm btn-primary" onclick="addInlineMat('vt','branding')" type="button" style="align-self:end">Додати</button>
       </div>
     </div>
   </div>
@@ -861,6 +867,71 @@ textarea:focus{border-color:var(--accent)}
 </div>
 
 
+<!-- ══════ MODAL: НОВИЙ ВАРІАНТ ══════ -->
+<div class="modal-overlay" id="modal-new-variant">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span id="mnv-title">➕ Новий варіант</span>
+      <button class="modal-close" onclick="closeModal('modal-new-variant')">✕</button>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:end">
+      <div class="fg">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Тканина</label>
+          <button class="add-mat-btn" onclick="toggleInlineMat('mnv-mat-form')" type="button">+ нова</button>
+        </div>
+        <select id="mnv-fabric" onchange="vtFabricChange('mnv')">
+          <option value="">— з довідника —</option>
+        </select>
+      </div>
+      <div class="fg"><label class="lbl">Колір</label>
+        <select id="mnv-color" onchange="vtColorChange('mnv')"><option value="">—</option></select>
+      </div>
+      <div class="fg"><label class="lbl">Артикул</label>
+        <input type="text" id="mnv-art" class="input-auto" readonly disabled placeholder="—">
+      </div>
+      <div class="fg"><label class="lbl">Штрихкод</label>
+        <input type="text" id="mnv-barcode" placeholder="RG001BN...">
+      </div>
+    </div>
+    <div class="inline-mat-form" id="mnv-mat-form" style="grid-template-columns:1fr 120px 120px auto">
+      <div class="fg"><label class="lbl">Назва тканини</label><input type="text" id="mnv-new-fab-name" placeholder="Назва тканини"></div>
+      <div class="fg"><label class="lbl">Колір</label><input type="text" id="mnv-new-fab-color" placeholder="Колір"></div>
+      <div class="fg"><label class="lbl">Код</label><input type="text" id="mnv-new-fab-code" placeholder="201"></div>
+      <button class="btn btn-sm btn-primary" onclick="addInlineMat('mnv','fabric')" type="button" style="align-self:end">Додати</button>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 100px;align-items:end">
+      <div class="fg"><label class="lbl">Стать</label>
+        <select id="mnv-sex"><option value="">—</option><option>Жіноча</option><option>Чоловіча</option><option>Унісекс</option><option>Дитяча</option></select>
+      </div>
+      <div class="fg">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Брендування</label>
+          <button class="add-mat-btn" onclick="toggleInlineMat('mnv-brand-form')" type="button">+ нове</button>
+        </div>
+        <select id="mnv-brand-code" onchange="vtBrandChange('mnv')">
+          <option value="-">— без брендування —</option>
+        </select>
+      </div>
+      <div class="fg"><label class="lbl">Матеріал</label>
+        <input type="text" id="mnv-brand-mat" class="input-auto" readonly disabled placeholder="—">
+      </div>
+    </div>
+    <div class="inline-mat-form" id="mnv-brand-form" style="grid-template-columns:1fr 100px auto auto">
+      <div class="fg"><label class="lbl">Матеріал</label><input type="text" id="mnv-new-brand-name" placeholder="плівка біла"></div>
+      <div class="fg"><label class="lbl">Код</label><input type="text" id="mnv-new-brand-code" placeholder="001"></div>
+      <div></div>
+      <button class="btn btn-sm btn-primary" onclick="addInlineMat('mnv','branding')" type="button" style="align-self:end">Додати</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <div class="row">
+      <button class="btn btn-primary" onclick="submitModalVariant()">Зберегти варіант →</button>
+      <button class="btn" onclick="closeModal('modal-new-variant')">Скасувати</button>
+      <span class="err" id="mnv-err"></span>
+    </div>
+  </div>
+</div>
+
 <!-- ══════ MODAL: НОВИЙ ВИРІБ ══════ -->
 <div class="modal-overlay" id="modal-new-product">
   <div class="modal-box">
@@ -872,9 +943,20 @@ textarea:focus{border-color:var(--accent)}
       <div class="fg"><label class="lbl">Назва виробу</label><input type="text" id="mnp-name" placeholder="Назва..."></div>
       <div class="fg"><label class="lbl">Код</label><input type="text" id="mnp-code" placeholder="RG001"></div>
     </div>
-    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:start">
+    <div style="margin-bottom:12px">
+      <label class="lbl" style="display:block;margin-bottom:6px">Каталог виробу</label>
+      <div class="otype-btns">
+        <button class="otype-btn" id="mnp-type-sewing" onclick="setMnpType('sewing')">🧵 Швейка</button>
+        <button class="otype-btn" id="mnp-type-tier"   onclick="setMnpType('tier')">⬡ TIER</button>
+        <button class="otype-btn" id="mnp-type-teams"  onclick="setMnpType('teams')">👥 Команди</button>
+      </div>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:end">
       <div class="fg">
-        <label class="lbl">Тканина <button class="add-mat-btn" onclick="toggleInlineMat('mnp-mat-form')" type="button">+ нова</button></label>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Тканина</label>
+          <button class="add-mat-btn" onclick="toggleInlineMat('mnp-mat-form')" type="button">+ нова</button>
+        </div>
         <select id="mnp-fabric" onchange="vtFabricChange('mnp')">
           <option value="">— з довідника —</option>
         </select>
@@ -895,13 +977,16 @@ textarea:focus{border-color:var(--accent)}
         <input type="text" id="mnp-barcode" placeholder="RG001BN...">
       </div>
     </div>
-    <div class="form-row" style="grid-template-columns:1fr 1fr 100px;align-items:start">
+    <div class="form-row" style="grid-template-columns:1fr 1fr 100px;align-items:end">
       <div class="fg">
         <label class="lbl">Стать</label>
         <select id="mnp-sex"><option value="">—</option><option>Жіноча</option><option>Чоловіча</option><option>Унісекс</option><option>Дитяча</option></select>
       </div>
       <div class="fg">
-        <label class="lbl">Брендування <button class="add-mat-btn" onclick="toggleInlineMat('mnp-brand-form')" type="button">+ нове</button></label>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Брендування</label>
+          <button class="add-mat-btn" onclick="toggleInlineMat('mnp-brand-form')" type="button">+ нове</button>
+        </div>
         <select id="mnp-brand-code" onchange="vtBrandChange('mnp')">
           <option value="-">— без брендування —</option>
         </select>
@@ -930,7 +1015,7 @@ textarea:focus{border-color:var(--accent)}
 //  API — підключення до Google Apps Script
 //  Замініть URL нижче на свій після деплою
 // ════════════════════════════════════════════════
-const API_URL = "https://script.google.com/macros/s/AKfycbxMiCNg0jIe_E7X_vFJ9LBMVEW-L_D-0gkWsxLKBSIo3c1bzCPSyLjnmwLaXns-FU5rJA/exec"; // ← вставте URL виду https://script.google.com/macros/s/.../exec
+const API_URL = "https://script.google.com/macros/s/AKfycbx4zxArD7oNqjHGI4I1NmMio10b5-1mFFWNP5ENkgOEi1vFVxcQRJR6oLEAZO1QsIOVZw/exec"; // ← вставте URL виду https://script.google.com/macros/s/.../exec
 
 async function apiGet(action) {
   if(!API_URL) return null;
@@ -1195,7 +1280,35 @@ function markField(id, err) {
 // ════════════════════════════════════════════════
 //  МОДАЛЬНІ ВІКНА
 // ════════════════════════════════════════════════
-let _modalTargetPbId = null; // id блоку виробу куди підставляємо після збереження
+let _modalTargetPbId = null;
+let _modalTargetVariantPbId = null;
+let _mnpType = 'tier'; // поточний тип у модалці нового виробу
+
+function setMnpType(type) {
+  _mnpType = type;
+  const styles = {tier:'active-tier', sewing:'active-sewing', teams:'active-teams'};
+  ['sewing','tier','teams'].forEach(t => {
+    const b = document.getElementById('mnp-type-'+t);
+    if(!b) return;
+    b.className = 'otype-btn' + (t===type ? ' '+styles[t] : '');
+  });
+  // Перезаповнити select тканин відповідно до нового типу
+  const fabSel = document.getElementById('mnp-fabric');
+  const bSel   = document.getElementById('mnp-brand-code');
+  if(fabSel) { fabSel.options.length=1; }
+  if(bSel)   { bSel.options.length=1; }
+  // Тимчасово підміняємо currentOrderType щоб vtPopulateFormSelects взяв правильні матеріали
+  const _saved = currentOrderType;
+  currentOrderType = type;
+  vtPopulateFormSelects('mnp');
+  currentOrderType = _saved;
+  // Скинути вибір тканини і кольору
+  if(fabSel) fabSel.selectedIndex=0;
+  const colSel = document.getElementById('mnp-color');
+  if(colSel){ colSel.innerHTML='<option value="">—</option>'; colSel.className=''; }
+  const artEl = document.getElementById('mnp-art');
+  if(artEl){ artEl.value=''; artEl.disabled=true; }
+}
 
 function openModal(id) {
   document.getElementById(id).classList.add('open');
@@ -1206,10 +1319,10 @@ function closeModal(id) {
 
 function openModalNewProduct(pbId) {
   _modalTargetPbId = pbId;
-  // Заголовок з типом замовлення
-  const lblMap = {tier:'⬡ TIER', sewing:'🧵 Швейка', teams:'👥 Команди'};
-  document.getElementById('mnp-title').textContent =
-    '➕ Новий виріб — ' + (lblMap[currentOrderType]||currentOrderType);
+  // Встановити тип = поточний тип замовлення
+  _mnpType = currentOrderType;
+  setMnpType(currentOrderType);
+  document.getElementById('mnp-title').textContent = '➕ Новий виріб';
   // Очистити форму
   ['mnp-name','mnp-code','mnp-barcode'].forEach(id=>{
     const e=document.getElementById(id); if(e) e.value='';
@@ -1232,6 +1345,80 @@ function openModalNewProduct(pbId) {
   openModal('modal-new-product');
 }
 
+function openModalNewVariant(pbId) {
+  const nameSel = document.getElementById(pbId+'-name');
+  if(!nameSel || !nameSel.value) {
+    alert('Спочатку оберіть виріб');
+    return;
+  }
+  _modalTargetVariantPbId = pbId;
+  const productName = nameSel.value;
+  document.getElementById('mnv-title').textContent = '➕ Новий варіант — ' + productName;
+
+  // Очистити поля
+  ['mnv-barcode'].forEach(id => { const e=document.getElementById(id); if(e) e.value=''; });
+  ['mnv-sex','mnv-fabric','mnv-brand-code'].forEach(id => {
+    const e=document.getElementById(id); if(e) e.selectedIndex=0;
+  });
+  const mc=document.getElementById('mnv-color');
+  if(mc){ mc.innerHTML='<option value="">—</option>'; mc.className=''; }
+  ['mnv-art','mnv-brand-mat'].forEach(id => {
+    const e=document.getElementById(id); if(e){ e.value=''; e.disabled=true; }
+  });
+  document.getElementById('mnv-err').textContent='';
+
+  // Заповнити selects
+  const fabSel=document.getElementById('mnv-fabric');
+  const bSel=document.getElementById('mnv-brand-code');
+  if(fabSel) fabSel.options.length=1;
+  if(bSel)   bSel.options.length=1;
+  vtPopulateFormSelects('mnv');
+
+  openModal('modal-new-variant');
+}
+
+function submitModalVariant() {
+  const pbId = _modalTargetVariantPbId;
+  if(!pbId) return;
+  const nameSel = document.getElementById(pbId+'-name');
+  if(!nameSel || !nameSel.value) return;
+  const err = document.getElementById('mnv-err');
+
+  // Знайти виріб
+  const productName = nameSel.value;
+  const p = DB.vtProducts.find(x =>
+    x.name === productName && (x.type||'tier') === currentOrderType
+  );
+  if(!p) { err.textContent='❗ Виріб не знайдено'; return; }
+
+  const newVar = {
+    sex:       document.getElementById('mnv-sex').value,
+    fabric:    document.getElementById('mnv-fabric').value,
+    fabricArt: document.getElementById('mnv-art').value,
+    color:     document.getElementById('mnv-color').value,
+    barcode:   document.getElementById('mnv-barcode').value,
+    brandCode: document.getElementById('mnv-brand-code').value||'-',
+    brandMat:  document.getElementById('mnv-brand-mat').value||'-',
+  };
+
+  p.variants.push(newVar);
+  const vi = p.variants.length - 1;
+  apiPost({ action:'updateVtVariants', id: p.id, variantsJson: JSON.stringify(p.variants) });
+
+  closeModal('modal-new-variant');
+
+  // Оновити select варіантів і підставити новий
+  const varSel = document.getElementById(pbId+'-var');
+  if(varSel) {
+    const opt = document.createElement('option');
+    opt.value = `${p.id}:${vi}`;
+    opt.textContent = `${newVar.sex} · ${newVar.color}`;
+    varSel.appendChild(opt);
+    varSel.value = `${p.id}:${vi}`;
+  }
+  _modalTargetVariantPbId = null;
+}
+
 function submitModalProduct() {
   const name = document.getElementById('mnp-name').value.trim();
   const code = document.getElementById('mnp-code').value.trim();
@@ -1244,7 +1431,7 @@ function submitModalProduct() {
     id:       Date.now(),
     name:     name,
     code:     code,
-    type:     currentOrderType,
+    type:     _mnpType,
     variants: [{
       sex:       document.getElementById('mnp-sex').value,
       fabric:    document.getElementById('mnp-fabric').value,
@@ -1260,6 +1447,11 @@ function submitModalProduct() {
   apiPost({ action:'addVtProduct', item: newProduct });
 
   closeModal('modal-new-product');
+
+  // Якщо тип виробу відрізняється від поточного типу замовлення — переключаємо
+  if(_mnpType !== currentOrderType) {
+    setOrderType(_mnpType);
+  }
 
   // Підставити в блок замовлення
   if(_modalTargetPbId) {
@@ -1289,9 +1481,9 @@ function toggleInlineMat(formId) {
 function addInlineMat(prefix, matType) {
   // prefix = 'vt' або 'vav-ID'
   // matType = 'fabric' | 'branding'
-  const _grpType = prefix === 'vt' || prefix === 'mnp' || prefix.startsWith('vav')
-    ? (prefix === 'vt' ? currentVtType : currentOrderType)
-    : currentOrderType;
+  const _grpType = prefix === 'vt' || prefix.startsWith('vav')
+    ? currentVtType
+    : prefix === 'mnp' ? _mnpType : currentOrderType;
   const dirGroup = _grpType === 'sewing' ? matType+'_sewing' : matType+'_tier';
 
   if(matType === 'fabric') {
@@ -1441,7 +1633,7 @@ function vtFabricChange(prefix) {
 
   // Всі записи з цією назвою тканини
   const _fabType2 = prefix === 'vt' || prefix.startsWith('vav')
-    ? currentVtType : currentOrderType;
+    ? currentVtType : prefix === 'mnp' ? _mnpType : currentOrderType;
   const dirKey2 = _fabType2 === 'sewing' ? 'fabric_sewing' : 'fabric_tier';
   const entries = (DB.directory[dirKey2] || []).filter(f => f.name === opt.value);
   const colors  = entries.map(f => f.color).filter(Boolean);
@@ -1475,7 +1667,7 @@ function vtColorChange(prefix) {
     return;
   }
   const _fabType3 = prefix === 'vt' || prefix.startsWith('vav')
-    ? currentVtType : currentOrderType;
+    ? currentVtType : prefix === 'mnp' ? _mnpType : currentOrderType;
   const dirKey3 = _fabType3 === 'sewing' ? 'fabric_sewing' : 'fabric_tier';
   const entry = (DB.directory[dirKey3] || []).find(f => f.name===fabName && f.color===color);
   artEl.value    = entry ? (entry.code||'') : '';
@@ -1522,17 +1714,21 @@ function addProdBlock() {
       <div class="prod-block-num">Виріб ${num}</div>
       <button class="btn-rm" onclick="document.getElementById('${id}').remove()">✕</button>
     </div>
-    <div class="form-row" style="grid-template-columns:1fr 1fr">
+    <div class="form-row" style="grid-template-columns:1fr 1fr;align-items:end">
       <div class="fg">
-        <label class="lbl">Назва виробу
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Назва виробу</label>
           <button class="add-mat-btn" onclick="openModalNewProduct('${id}')" type="button">+ новий виріб</button>
-        </label>
+        </div>
         <select id="${id}-name" onchange="onPbName('${id}')">
           <option value="">— Обрати виріб —</option>${nameOpts}
         </select>
       </div>
       <div class="fg">
-        <label class="lbl">Варіант (колір / стать)</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Варіант (колір / стать)</label>
+          <button class="add-mat-btn" onclick="openModalNewVariant('${id}')" type="button">+ новий варіант</button>
+        </div>
         <select id="${id}-var" onchange="onPbVar('${id}')"><option value="">—</option></select>
       </div>
     </div>
