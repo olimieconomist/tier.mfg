@@ -1093,14 +1093,14 @@ async function loadFromSheets() {
     const mapOrder = (o, closed) => ({
       id:             parseInt(o['№']) || 0,
       no:             parseInt(o['№']) || 0,
-      created:        String(o['Дата']        || ''),
+      created:   toISO(String(o['Дата']     || '')),
       name:           String(o['Назва']       || ''),
-      deadline:       String(o['Дедлайн']     || ''),
+     deadline:  toISO(String(o['Дедлайн'] || '')),
       tier:           o['Tier']  === 'ТАК',
       teams:          o['Teams'] === 'ТАК',
       status:         closed ? 'closed' : normalizeStatus(o['Статус']),
-      workStart:      String(o['Початок']     || ''),
-      workEnd:        String(o['Кінець']      || ''),
+      workStart: toISO(String(o['Початок'] || '')),
+      workEnd:   toISO(String(o['Кінець']  || '')),
       products:       safeJson(o['Вироби']),
       comment:        String(o['Коментар']    || ''),
       referenceUrl:   String(o['Референс']    || ''),
@@ -1213,9 +1213,37 @@ const DIR_TAGS   = {fabric_tier:'dtag-fabric',branding_tier:'dtag-branding',fabr
 //  HELPERS
 // ════════════════════════════════════════════════
 const todayStr  = () => new Date().toISOString().slice(0,10);
-const fmtD     = d => { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}); };
-const fmtDFull = d => { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'}); };
-const isOver   = o => !['done','closed'].includes(o.status) && o.deadline && o.deadline < todayStr();
+function parseDate(d) {
+  if (!d || d === '' || d === 'Invalid Date') return null;
+  const s = String(d).trim();
+  // yyyy-MM-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T00:00:00');
+  // dd.MM.yyyy (Ukrainian)
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(s)) {
+    const [day, mo, yr] = s.split('.');
+    return new Date(`${yr}-${mo}-${day}T00:00:00`);
+  }
+  // Excel/Sheets serial number
+  if (/^\d{5}$/.test(s) || (typeof d === 'number' && d > 40000)) {
+    return new Date(Math.round((Number(d) - 25569) * 86400 * 1000));
+  }
+  const p = new Date(d);
+  return isNaN(p) ? null : p;
+}
+const fmtD = d => {
+  const dt = parseDate(d);
+  return dt ? dt.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'}) : '—';
+};
+const fmtDFull = d => {
+  const dt = parseDate(d);
+  return dt ? dt.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit', year:'numeric'}) : '—';
+};
+const toISO = d => {
+  const dt = parseDate(d);
+  if (!dt) return '';
+  return dt.toISOString().slice(0,10);
+};
+const isOver = o => !['done','closed'].includes(o.status) && o.deadline && toISO(o.deadline) < todayStr();
 
 function openUrl(inputId) {
   const url = document.getElementById(inputId)?.value?.trim();
@@ -1524,19 +1552,19 @@ function buildOrderRow(o) {
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
       <div class="detail-field"><div class="lbl">Референс (URL)</div>
-        <div class="url-field-wrap">
-          <input type="url" value="${o.referenceUrl||''}" placeholder="https://..."
-            onchange="updOrder(${o.id},'referenceUrl',this.value)">
-          <button class="url-open-btn" onclick="window.open(document.querySelector('#oc${o.id} input[type=url]:nth-of-type(1)').value,'_blank')" title="Відкрити">🔗</button>
-        </div>
-      </div>
-      <div class="detail-field"><div class="lbl">Сублімація (URL)</div>
-        <div class="url-field-wrap">
-          <input type="url" value="${o.sublimationUrl||''}" placeholder="https://..."
-            onchange="updOrder(${o.id},'sublimationUrl',this.value)">
-          <button class="url-open-btn" onclick="window.open(document.querySelector('#oc${o.id} input[type=url]:nth-of-type(2)').value,'_blank')" title="Відкрити">🔗</button>
-        </div>
-      </div>
+  <div class="url-field-wrap">
+    <input type="url" id="ref-${o.id}" value="${o.referenceUrl||''}" placeholder="https://..."
+      onchange="updOrder(${o.id},'referenceUrl',this.value)">
+    <button class="url-open-btn" onclick="openUrlById('ref-${o.id}')" title="Відкрити">🔗</button>
+  </div>
+</div>
+<div class="detail-field"><div class="lbl">Сублімація (URL)</div>
+  <div class="url-field-wrap">
+    <input type="url" id="sub-${o.id}" value="${o.sublimationUrl||''}" placeholder="https://..."
+      onchange="updOrder(${o.id},'sublimationUrl',this.value)">
+    <button class="url-open-btn" onclick="openUrlById('sub-${o.id}')" title="Відкрити">🔗</button>
+  </div>
+</div>
     </div>
     ${refHtml}
     <div class="comment-wrap">
@@ -1551,7 +1579,10 @@ function buildOrderRow(o) {
   </div></td></tr>
 </tbody>`;
 }
-
+function openUrlById(id) {
+  const url = document.getElementById(id)?.value?.trim();
+  if (url) window.open(url, '_blank');
+}
 function buildProdDetail(p, sexClass) {
   if (!sexClass) sexClass = (sex) => {
     if (!sex) return '';
@@ -1851,11 +1882,11 @@ function addProdBlock() {
         </div>
       </div>
       <div class="size-row-wrap" id="${id}-sizes"></div>
-      <div class="row">
-        <button class="btn-add-row" onclick="addSizeRow('${id}')">+ Розмір</button>
-        <button class="btn-add-row" onclick="openModalNewProduct('${id}')" style="margin-left:8px">+ Новий виріб</button>
-        <button class="btn-add-row" onclick="openModalNewVariant('${id}')" style="margin-left:4px">+ Новий варіант</button>
-      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+  <button class="btn-add-row" onclick="addSizeRow('${id}')">+ Розмір</button>
+  <button class="btn-add-row" onclick="openModalNewProduct('${id}')">+ Новий виріб</button>
+  <button class="btn-add-row" onclick="openModalNewVariant('${id}')">+ Новий варіант</button>
+</div>
     </div>`);
   addSizeRow(id);
 }
