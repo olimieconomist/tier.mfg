@@ -1860,34 +1860,39 @@ function resetForm() {
 function addProdBlock() {
   const id = 'pb' + (++prodBlockCount);
   const container = document.getElementById('prod-container');
-  const vtNames = DB.vtProducts
-    .filter(p => (p.type||'tier') === currentOrderType)
-    .map(p => `<option value="${p.name}">${p.name} (${p.code})</option>`).join('');
+  const filtered = DB.vtProducts.filter(p => (p.type || 'tier') === currentOrderType);
+  const names = [...new Set(filtered.map(p => p.name))].sort();
+  const nameOpts = names.map(n => `<option value="${n}">${n}</option>`).join('');
+
   container.insertAdjacentHTML('beforeend', `
     <div class="prod-block" id="${id}">
       <div class="prod-block-head">
         <span class="prod-block-num">Виріб ${prodBlockCount}</span>
         <button class="btn-rm" onclick="document.getElementById('${id}').remove()">✕</button>
       </div>
-      <div class="form-row" style="grid-template-columns:1fr 160px">
+      <div class="form-row" style="grid-template-columns:1fr 1fr;align-items:end">
         <div class="fg">
-          <label class="lbl">Виріб</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label class="lbl" style="margin:0">Назва виробу</label>
+            <button class="add-mat-btn" onclick="openModalNewProduct('${id}')" type="button">+ новий виріб</button>
+          </div>
           <select id="${id}-name" onchange="onPbName('${id}')">
-            <option value="">— обрати виріб —</option>${vtNames}
+            <option value="">— Обрати виріб —</option>${nameOpts}
           </select>
         </div>
         <div class="fg">
-          <label class="lbl">Варіант</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label class="lbl" style="margin:0">Варіант (колір / стать)</label>
+            <button class="add-mat-btn" onclick="openModalNewVariant('${id}')" type="button">+ новий варіант</button>
+          </div>
           <select id="${id}-var"><option value="">—</option></select>
         </div>
       </div>
+      <div class="prod-section-lbl" style="border-top:none;padding-top:4px">Розміри та кількість</div>
       <div class="size-row-wrap" id="${id}-sizes"></div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
-  <button class="btn-add-row" onclick="addSizeRow('${id}')">+ Розмір</button>
-  <button class="btn-add-row" onclick="openModalNewProduct('${id}')">+ Новий виріб</button>
-  <button class="btn-add-row" onclick="openModalNewVariant('${id}')">+ Новий варіант</button>
-</div>
+      <button class="btn-add-row" onclick="addSizeRow('${id}')">+ Розмір</button>
     </div>`);
+
   addSizeRow(id);
 }
 
