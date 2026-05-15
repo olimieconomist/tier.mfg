@@ -590,15 +590,21 @@ tbody.order-card.s-new .detail-cell{border-left-color:var(--blue)}
 <!-- ══════ BATCH PANEL ══════ -->
 <div id="batch-panel">
   <span>Обрано: <b id="batch-count">0</b></span>
+  <select id="batch-status-sel" onchange="batchChangeStatus(this.value)"
+    style="background:var(--bg);color:var(--text);border:1px solid var(--border2);
+           border-radius:4px;padding:5px 8px;font-family:var(--mono);font-size:10px;cursor:pointer">
+    <option value="">— змінити статус —</option>
+    <option value="new">🔵 НОВЕ</option>
+    <option value="accepted">🟤 Прийнято</option>
+    <option value="sublimation">🟣 Сублімація</option>
+    <option value="rozkroi">🟠 Розкрій</option>
+    <option value="shveika">🟡 Цех</option>
+    <option value="done">🟢 Готово</option>
+    <option value="closed">⚫ Закрито</option>
+  </select>
   <button class="batch-btn" onclick="batchPrint()">🖨️ Друкувати</button>
-  <button class="batch-btn" onclick="openBatchStatus()">🔄 Змінити статус</button>
-  <button class="batch-btn" onclick="clearSelection()">Скасувати</button>
+  <button class="batch-btn" onclick="clearSelection()">✕ Скасувати</button>
 </div>
-
-<!-- Batch status select (hidden) -->
-<select id="batch-status-sel" style="display:none" onchange="batchChangeStatus(this.value)">
-  <option value="">— обери статус —</option>
-</select>
 
 <!-- ══════ ШАПКА ══════ -->
 <div class="header">
@@ -706,16 +712,21 @@ tbody.order-card.s-new .detail-cell{border-left-color:var(--blue)}
       <div class="orders-wrap">
         <table class="orders-table" id="orders-table">
           <thead>
-            <tr>
-              <th class="col-check"><input type="checkbox" class="order-cb" id="cb-all" onchange="toggleSelectAll(this.checked)" title="Обрати всі"></th>
-              <th class="sortable" data-col="no" onclick="sortByCol('no',this)">№</th>
-              <th>Назва</th>
-              <th class="sortable" data-col="created" onclick="sortByCol('created',this)">Створено · Дедлайн</th>
-              <th class="sortable" data-col="workStart" onclick="sortByCol('workStart',this)">Виробництво</th>
-              <th class="sortable" data-col="status" onclick="sortByCol('status',this)">Статус</th>
-              <th style="width:32px"></th>
-            </tr>
-          </thead>
+  <tr>
+    <th class="col-check">
+      <input type="checkbox" class="order-cb" id="cb-all"
+        onchange="toggleSelectAll(this.checked)" title="Обрати всі">
+    </th>
+    <th class="sortable" onclick="sortByCol('no',this)">№</th>
+    <th>Назва</th>
+    <th class="sortable" onclick="sortByCol('created',this)">Створено</th>
+    <th class="sortable" onclick="sortByCol('deadline',this)">Дедлайн</th>
+    <th class="sortable" onclick="sortByCol('workStart',this)">Поч.</th>
+    <th class="sortable" onclick="sortByCol('workEnd',this)">Кінець</th>
+    <th class="sortable" onclick="sortByCol('status',this)">Статус</th>
+    <th style="width:28px"></th>
+  </tr>
+</thead>
         </table>
       </div>
     </div>
@@ -1391,36 +1402,20 @@ function updateBatchPanel() {
   panel.classList.toggle('show', count > 0);
 }
 
-function openBatchStatus() {
-  const sel = document.getElementById('batch-status-sel');
-  // populate options
-  sel.innerHTML = '<option value="">— обери статус —</option>' +
-    Object.entries(SLABELS).filter(([k]) => k !== 'closed')
-      .map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
-  sel.style.display = 'inline-block';
-  sel.style.position = 'fixed';
-  sel.style.bottom = '70px';
-  sel.style.left = '50%';
-  sel.style.transform = 'translateX(-50%)';
-  sel.style.zIndex = '8000';
-  sel.focus();
-  sel.onblur = () => { sel.style.display = 'none'; };
-}
-
 async function batchChangeStatus(val) {
   if (!val) return;
-  document.getElementById('batch-status-sel').style.display = 'none';
   const nos = DB.orders.filter(o => selectedIds.has(o.id)).map(o => o.no);
-  // Update locally
   selectedIds.forEach(id => {
     const o = DB.orders.find(x => x.id === id);
     if (o) o.status = val;
   });
-  // Sync to sheets
   await apiPost({ action: 'batchUpdateStatus', nos, status: SLABELS[val] || val });
-  showToast(`✓ Статус змінено на «${SLABELS[val]}» для ${nos.length} замовлень`);
+  showToast(`✓ Статус «${SLABELS[val]}» — ${nos.length} замовлень`);
+  // Скидаємо селект
+  document.getElementById('batch-status-sel').value = '';
   clearSelection();
   renderStats(); renderOrders(); renderCalendar();
+  if (val === 'closed') renderArchive();
 }
 
 function batchPrint() {
@@ -1480,11 +1475,11 @@ function buildOrderRow(o) {
     ? `<div class="conflict-msg">⚠️ Дедлайн раніше за кінець виробництва</div>` : '';
 
   // Reference links HTML
-  const refHtml = (o.referenceUrl || o.sublimationUrl) ? `
-    <div class="ref-links">
-      ${o.referenceUrl   ? `<a href="${o.referenceUrl}"   target="_blank" class="ref-link-btn">📎 Референс</a>` : ''}
-      ${o.sublimationUrl ? `<a href="${o.sublimationUrl}" target="_blank" class="ref-link-btn ref-sublimation">🎨 Сублімація</a>` : ''}
-    </div>` : '';
+const refHtml = `
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+    ${o.referenceUrl   ? `<a href="${o.referenceUrl}"   target="_blank" class="ref-link-btn">📎 Референс</a>`   : ''}
+    ${o.sublimationUrl ? `<a href="${o.sublimationUrl}" target="_blank" class="ref-link-btn ref-sublimation">🎨 Сублімація</a>` : ''}
+  </div>`;
 
   // Size chips with gender colors
   function sexClass(sex) {
@@ -1505,31 +1500,22 @@ function buildOrderRow(o) {
     </td>
     <td onclick="toggleOrder(${o.id})"><span class="order-no">${String(o.no).padStart(3,'0')}</span></td>
     <td class="nodim" onclick="toggleOrder(${o.id})">${o.name} ${tierTag}</td>
-    <td onclick="toggleOrder(${o.id})">
-      <div class="date-group">
-        <div class="date-lbl">Дата · Дедлайн</div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <span class="date-val">${fmtD(o.created)}</span>
-          <span class="date-sep">→</span>
-          <span class="${dlCls}">${fmtD(o.deadline)}${dlWarn?'⚠️':''}</span>
-        </div>
-      </div>
-    </td>
-    <td onclick="toggleOrder(${o.id})">
-      <div class="date-group">
-        <div class="date-lbl">Виробництво</div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <span class="${wsDtCls}">${o.workStart?fmtD(o.workStart):'—'}</span>
-          <span class="date-sep">→</span>
-          <span class="${wsDtCls}">${o.workEnd?fmtD(o.workEnd):'—'}</span>
-          ${warnIcon}
-        </div>
-      </div>
-    </td>
+<td onclick="toggleOrder(${o.id})">
+  <div class="date-val ${''}">${fmtD(o.created)}</div>
+</td>
+<td onclick="toggleOrder(${o.id})">
+  <div class="date-val ${(over||dlWarn)?'warn':''}">${fmtD(o.deadline)}${dlWarn?'⚠️':''}</div>
+</td>
+<td onclick="toggleOrder(${o.id})">
+  <div class="date-val ${conflicts.length?'conflict-date':''}">${o.workStart?fmtD(o.workStart):'—'}</div>
+</td>
+<td onclick="toggleOrder(${o.id})">
+  <div class="date-val ${conflicts.length?'conflict-date':''}">${o.workEnd?fmtD(o.workEnd):'—'}${warnIcon}</div>
+</td>
     <td class="nodim" onclick="toggleOrder(${o.id})">${sBadge(dispStatus)}</td>
     <td onclick="toggleOrder(${o.id})"><div class="chevron">▾</div></td>
   </tr>
-  <tr class="order-detail"><td colspan="7"><div class="detail-cell">
+  <tr class="order-detail"><td colspan="9"><div class="detail-cell">
     ${conflictHtml}${dlWarnHtml}
     <div style="display:grid;grid-template-columns:100px 100px 1fr 1fr 160px;gap:10px;align-items:end;margin-top:${(conflictHtml||dlWarnHtml)?'10px':'0'}">
       <div class="detail-field">
