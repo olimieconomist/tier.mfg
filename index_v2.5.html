@@ -1,0 +1,2338 @@
+<!DOCTYPE html>
+<html lang="uk" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TIER.MFG — Система управління виробництвом</title>
+<!-- <script src="https://accounts.google.com/gsi/client" async defer></script> -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+/* ══════════════════════════════════════════════
+   CSS ЗМІННІ — темна тема (за замовчуванням)
+   ══════════════════════════════════════════════ */
+:root {
+  --cal-width: 290px;
+  --bg:        #0e0f11;
+  --surface:   #16181c;
+  --surface2:  #1e2127;
+  --border:    #2a2d35;
+  --border2:   #363a45;
+  --text:      #e8eaf0;
+  --text-muted:#7a7f8e;
+  --text-dim:  #4a4f5c;
+  --accent:    #4f8ef7;
+  --accent-dim:#1e3a6e;
+  --green:     #2ecc71;
+  --green-bg:  #0d2b1a;
+  --yellow:    #f5c518;
+  --yellow-bg: #2a2208;
+  --red:       #e74c3c;
+  --red-bg:    #2b0d0d;
+  --orange:    #f97316;
+  --orange-bg: #2a1505;
+  --purple:    #9b59b6;
+  --purple-bg: #200a2e;
+  --blue:      #3b82f6;
+  --blue-bg:   #0f2040;
+  --gray-bg:   #1c1e24;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+
+/* ══════════════════════════════════════════════
+   СВІТЛА ТЕМА
+   ══════════════════════════════════════════════ */
+[data-theme="light"] {
+  --bg:        #f0f2f5;
+  --surface:   #ffffff;
+  --surface2:  #f5f6f9;
+  --border:    #dde1ea;
+  --border2:   #c8cdd8;
+  --text:      #1a1d26;
+  --text-muted:#52586a;
+  --text-dim:  #8c93a8;
+  --accent:    #2563eb;
+  --accent-dim:#dbeafe;
+  --green:     #16a34a;
+  --green-bg:  #dcfce7;
+  --yellow:    #d97706;
+  --yellow-bg: #fef9c3;
+  --red:       #dc2626;
+  --red-bg:    #fee2e2;
+  --orange:    #ea580c;
+  --orange-bg: #fff0e0;
+  --purple:    #6d28d9;
+  --purple-bg: #ede9fe;
+  --blue:      #1d4ed8;
+  --blue-bg:   #dbeafe;
+  --gray-bg:   #e5e7eb;
+}
+[data-theme="light"] input[type=date]::-webkit-calendar-picker-indicator{filter:none;opacity:.6}
+[data-theme="light"] select option{background:#fff;color:#1a1d26}
+
+/* ── RESET ── */
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ══════════════════════════════════════════════
+   AUTH OVERLAY
+   ══════════════════════════════════════════════ */
+#auth-overlay{
+  position:fixed;inset:0;background:var(--bg);z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+}
+#auth-overlay.hidden{display:none}
+.auth-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:40px 48px;text-align:center;width:min(420px,90vw);
+}
+.auth-logo{font-family:var(--mono);font-size:24px;font-weight:600;letter-spacing:.12em;margin-bottom:6px}
+.auth-logo span{color:var(--accent)}
+.auth-sub{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.1em;margin-bottom:32px}
+.auth-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:12px 24px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--surface2);color:var(--text);font-family:var(--mono);
+  font-size:12px;letter-spacing:.05em;cursor:pointer;transition:all .2s;
+  text-decoration:none;width:100%;justify-content:center;
+}
+.auth-btn:hover{border-color:var(--accent);color:var(--accent)}
+.auth-btn svg{width:18px;height:18px}
+.auth-denied{color:var(--red);font-family:var(--mono);font-size:11px;margin-top:16px;display:none}
+.auth-denied.show{display:block}
+#g-signin-btn{margin-bottom:12px}
+
+/* ══════════════════════════════════════════════
+   TOAST
+   ══════════════════════════════════════════════ */
+#toast-container{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  z-index:8000;display:flex;flex-direction:column;gap:8px;align-items:center;
+  pointer-events:none;
+}
+.toast{
+  background:var(--text);color:var(--bg);
+  padding:8px 20px;border-radius:20px;font-family:var(--mono);font-size:11px;
+  letter-spacing:.05em;opacity:0;transform:translateY(8px);
+  transition:all .25s;pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* ══════════════════════════════════════════════
+   BATCH PANEL (floating)
+   ══════════════════════════════════════════════ */
+#batch-panel{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--text);color:var(--bg);
+  border-radius:10px;padding:10px 16px;
+  display:none;align-items:center;gap:12px;z-index:7000;
+  font-family:var(--mono);font-size:11px;
+  box-shadow:0 4px 24px rgba(0,0,0,.4);
+}
+#batch-panel.show{display:flex}
+#batch-count{font-weight:600;margin-right:4px}
+.batch-btn{
+  padding:6px 14px;border-radius:5px;border:none;
+  background:var(--bg);color:var(--text);font-family:var(--mono);
+  font-size:10px;letter-spacing:.05em;cursor:pointer;transition:all .15s;
+}
+.batch-btn:hover{background:var(--surface2)}
+.batch-btn.danger{background:var(--red);color:#fff}
+.batch-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0 4px}
+
+/* ══════════════════════════════════════════════
+   ШАПКА
+   ══════════════════════════════════════════════ */
+.header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:52px;
+  border-bottom:1px solid var(--border);background:var(--surface);
+  position:sticky;top:0;z-index:200;
+}
+.header-left{display:flex;align-items:center;gap:16px}
+.logo{font-family:var(--mono);font-size:17px;font-weight:600;letter-spacing:.12em}
+.logo span{color:var(--accent)}
+.header-meta{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.08em}
+.header-right{display:flex;align-items:center;gap:10px}
+.user-email{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.05em}
+.theme-btn{
+  background:none;border:1px solid var(--border);border-radius:5px;
+  color:var(--text-muted);cursor:pointer;padding:4px 8px;font-size:14px;
+  transition:all .15s;
+}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── ВКЛАДКИ ── */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 28px;overflow-x:auto}
+.tab{
+  padding:11px 18px;font-family:var(--mono);font-size:11px;letter-spacing:.07em;
+  color:var(--text-muted);cursor:pointer;border:none;background:none;
+  border-bottom:2px solid transparent;text-transform:uppercase;white-space:nowrap;
+  transition:all .15s;
+}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── LAYOUT ── */
+.page{display:none;padding:20px 28px;max-width:1600px}
+.page.active{display:block}
+.orders-layout{display:grid;grid-template-columns:1fr var(--cal-width);gap:20px;align-items:start}
+
+/* ══════════════════════════════════════════════
+   ДАШБОРД
+   ══════════════════════════════════════════════ */
+.stats-bar{
+  display:flex;gap:20px;margin-bottom:16px;
+  padding:14px 20px;background:var(--surface);
+  border:1px solid var(--border);border-radius:6px;flex-wrap:wrap;align-items:center;
+}
+.stat{display:flex;flex-direction:column;gap:2px;position:relative}
+.stat-val{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1}
+.stat-val .tier-cnt{font-size:13px;color:var(--text-dim);font-weight:400;margin-left:2px}
+.stat-val.c-all{color:var(--text)}
+.stat-val.c-new{color:var(--blue)}
+.stat-val.c-work{color:var(--yellow)}
+.stat-val.c-done{color:var(--green)}
+.stat-val.c-over{color:var(--red)}
+/* НОВЕ — пульсуюче */
+.stat-val.c-new-alert{color:var(--blue);animation:pulse-blue 2s ease-in-out infinite}
+@keyframes pulse-blue{0%,100%{opacity:1}50%{opacity:.55}}
+.stat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--text-dim);text-transform:uppercase}
+.stat-div{width:1px;background:var(--border);align-self:stretch}
+/* НОВЕ плашка в статистиці */
+.stat-new-badge{
+  position:absolute;top:-6px;right:-8px;
+  background:var(--blue);color:#fff;font-family:var(--mono);font-size:8px;
+  padding:1px 5px;border-radius:10px;font-weight:600;letter-spacing:.05em;
+}
+
+/* ══════════════════════════════════════════════
+   ФІЛЬТРИ
+   ══════════════════════════════════════════════ */
+.filter-bar{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filter-lbl{font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase}
+.fbtn{
+  padding:4px 11px;border-radius:3px;border:1px solid var(--border);
+  background:transparent;color:var(--text-muted);
+  font-family:var(--mono);font-size:10px;letter-spacing:.05em;cursor:pointer;transition:all .12s;
+}
+.fbtn:hover,.fbtn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.fbtn.f-new.active{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+.fbtn.f-acc.active{border-color:var(--text-dim);color:var(--text);background:var(--surface2)}
+.fbtn.f-roz.active{border-color:var(--orange);color:var(--orange);background:var(--orange-bg)}
+.fbtn.f-shv.active{border-color:var(--yellow);color:var(--yellow);background:var(--yellow-bg)}
+.fbtn.f-done.active{border-color:var(--green);color:var(--green);background:var(--green-bg)}
+.fbtn.f-over.active{border-color:var(--red);color:var(--red);background:var(--red-bg)}
+.fbtn.f-closed.active{border-color:var(--text-dim);color:var(--text-dim);background:var(--surface2)}
+.fbtn.f-sub.active{border-color:var(--purple);color:var(--purple);background:var(--purple-bg)}
+
+/* ══════════════════════════════════════════════
+   ФОРМА НОВОГО ЗАМОВЛЕННЯ
+   ══════════════════════════════════════════════ */
+.create-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;border:1px solid var(--border);border-radius:6px 6px 0 0;
+  background:var(--surface);cursor:pointer;margin-bottom:0;transition:background .15s;
+}
+.create-header:hover{background:var(--surface2)}
+.create-header.closed{border-radius:6px;margin-bottom:14px}
+.create-header-label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.create-icon{font-size:16px;color:var(--accent);transition:transform .25s;font-family:var(--mono)}
+.create-header.open .create-icon{transform:rotate(45deg)}
+.create-body{max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.4,0,.2,1);border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;background:var(--surface);margin-bottom:14px}
+.create-body.open{max-height:2000px}
+.create-inner{padding:18px}
+.form-row{display:grid;gap:10px;margin-bottom:12px}
+.fg{display:flex;flex-direction:column;gap:5px}
+label.lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;display:block}
+input[type=text],input[type=date],input[type=number],input[type=url],select,textarea{
+  padding:7px 10px;background:var(--bg);border:1px solid var(--border2);border-radius:4px;
+  color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color .15s;width:100%;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select option{background:var(--bg)}
+.input-auto{background:var(--surface2);color:var(--text-muted);cursor:default}
+.field-error input,.field-error select,.field-error textarea{border-color:var(--red)!important;box-shadow:0 0 0 1px var(--red)}
+.field-error .lbl{color:var(--red)!important}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.55;cursor:pointer}
+textarea{resize:vertical;min-height:60px}
+.hint{font-size:10px;color:var(--text-dim);font-family:var(--mono)}
+.tier-check{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.tier-check input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
+.tier-check span{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.06em}
+
+/* ── URL поля ── */
+.url-field-wrap{position:relative}
+.url-field-wrap input{padding-right:32px}
+.url-open-btn{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:2px;
+  transition:color .15s;
+}
+.url-open-btn:hover{color:var(--accent)}
+
+/* ── PRODUCT BLOCKS ── */
+.prod-section-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-dim);padding:10px 0 8px;border-top:1px solid var(--border);margin-top:4px}
+.prod-block{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:12px;margin-bottom:8px}
+.prod-block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.prod-block-num{font-family:var(--mono);font-size:10px;color:var(--text-dim)}
+.btn-rm{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:3px;transition:color .15s}
+.btn-rm:hover{color:var(--red)}
+.size-row-wrap{display:flex;flex-direction:column;gap:5px;margin:8px 0}
+.size-row{display:grid;grid-template-columns:140px 80px 90px 28px;gap:6px;align-items:center}
+.btn-add-row,.btn-add-prod{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 11px;border-radius:3px;border:1px dashed var(--border2);
+  background:transparent;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .12s;margin-top:4px;
+}
+.btn-add-row:hover,.btn-add-prod:hover{border-color:var(--accent);color:var(--accent)}
+.btn{padding:7px 15px;border-radius:4px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;cursor:pointer;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:all .15s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.88}
+.btn-sm{padding:4px 10px;font-size:10px}
+.btn-orange{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn-green{background:var(--green);border-color:var(--green);color:#000}
+.btn-sub{background:var(--purple);border-color:var(--purple);color:#fff}
+.btn-print{border-color:var(--text-dim);color:var(--text-muted)}
+.btn-print:hover{border-color:var(--text);color:var(--text)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.err{color:var(--red);font-family:var(--mono);font-size:10px}
+.otype-btns{display:flex;gap:4px}
+.otype-btn{padding:4px 12px;border-radius:3px;border:1px solid var(--border2);background:transparent;color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.05em;cursor:pointer;transition:all .12s}
+.otype-btn:hover{border-color:var(--text-muted)}
+.otype-btn.active-sewing{border-color:var(--text-dim);color:var(--text);background:var(--surface2)}
+.otype-btn.active-tier{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.otype-btn.active-teams{border-color:var(--yellow);color:var(--yellow);background:var(--yellow-bg)}
+
+/* ══════════════════════════════════════════════
+   СПИСОК ЗАМОВЛЕНЬ
+   ══════════════════════════════════════════════ */
+.orders-wrap{border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.orders-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+
+/* Sortable headers */
+.orders-table th{
+  padding:9px 12px;text-align:left;font-size:9px;letter-spacing:.12em;
+  color:var(--text-dim);text-transform:uppercase;font-weight:500;
+  background:var(--surface2);border-bottom:1px solid var(--border2);white-space:nowrap;
+  user-select:none;
+}
+.orders-table th.sortable{cursor:pointer;transition:color .15s}
+.orders-table th.sortable:hover{color:var(--text)}
+.orders-table th.sort-asc::after{content:' ↑';color:var(--accent)}
+.orders-table th.sort-desc::after{content:' ↓';color:var(--accent)}
+.orders-table td{padding:9px 12px;vertical-align:middle}
+
+/* Checkbox column */
+th.col-check,td.col-check{width:32px;padding:9px 6px 9px 14px;text-align:center}
+.order-cb{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
+th.col-check .order-cb{cursor:pointer}
+
+/* Order rows */
+tbody.order-card{border-bottom:1px solid var(--border)}
+tbody.order-card:last-child{border-bottom:none}
+
+/* Left border by status */
+tbody.order-card.s-new         .order-head td:not(.col-check){border-left:3px solid var(--blue)}
+tbody.order-card.s-accepted    .order-head td:not(.col-check){border-left:3px solid var(--text-dim)}
+tbody.order-card.s-rozkroi    .order-head td:not(.col-check){border-left:3px solid var(--orange)}
+tbody.order-card.s-shveika    .order-head td:not(.col-check){border-left:3px solid var(--yellow)}
+tbody.order-card.s-sublimation .order-head td:not(.col-check){border-left:3px solid var(--purple)}
+tbody.order-card.s-done        .order-head td:not(.col-check){border-left:3px solid var(--green)}
+tbody.order-card.s-closed      .order-head td:not(.col-check){border-left:3px solid var(--text-dim)}
+
+/* НОВЕ — special highlight */
+tbody.order-card.s-new .order-head{background:color-mix(in srgb, var(--blue-bg) 30%, var(--surface))}
+tbody.order-card.s-new .order-head:hover td{background:color-mix(in srgb, var(--blue-bg) 50%, var(--surface2))}
+
+tbody.order-card.is-overdue .order-head{background:rgba(231,68,60,.04)}
+tbody.order-card.s-done .order-head td:not(.nodim,.col-check){opacity:.6}
+tbody.order-card.is-tier{background:rgba(79,142,247,.025)}
+tbody.order-card.is-selected .order-head td{background:color-mix(in srgb, var(--accent-dim) 60%, var(--surface))}
+
+.order-head{cursor:pointer;background:var(--surface)}
+.order-head:hover td{background:var(--surface2)}
+.order-no{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:2px 6px;border-radius:3px;border:1px solid var(--border)}
+.tag-tier{display:inline-block;padding:1px 6px;border-radius:2px;font-size:9px;letter-spacing:.08em;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(79,142,247,.3);margin-left:5px}
+.tag-teams{display:inline-block;padding:1px 6px;border-radius:2px;font-size:9px;letter-spacing:.08em;background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(245,197,24,.3);margin-left:5px}
+.date-group{display:flex;flex-direction:column;gap:2px}
+.date-lbl{font-size:9px;color:var(--text-dim);letter-spacing:.08em}
+.date-val{font-size:11px;color:var(--text-muted)}
+.date-val.warn{color:var(--red)}
+.date-sep{font-size:10px;color:var(--text-dim);margin:0 2px}
+
+/* Status badges */
+.sbadge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:3px;font-size:10px;font-family:var(--mono);white-space:nowrap}
+.sb-new        {background:var(--blue-bg);color:var(--blue);font-weight:600}
+.sb-accepted   {background:var(--surface2);color:var(--text-muted)}
+.sb-rozkroi    {background:var(--orange-bg);color:var(--orange)}
+.sb-shveika    {background:var(--yellow-bg);color:var(--yellow)}
+.sb-done       {background:var(--green-bg);color:var(--green)}
+.sb-closed     {background:var(--surface2);color:var(--text-dim)}
+.sb-sublimation{background:var(--purple-bg);color:var(--purple)}
+.sb-overdue    {background:var(--red-bg);color:var(--red)}
+
+.chevron{color:var(--text-dim);font-size:11px;transition:transform .2s;text-align:center}
+tbody.order-card.open .chevron{transform:rotate(180deg)}
+
+/* Detail row */
+.order-detail{display:none;background:var(--surface2)}
+tbody.order-card.open .order-detail{display:table-row}
+.detail-cell{padding:14px 16px 16px;border-left:3px solid transparent}
+tbody.order-card.s-new .detail-cell{border-left-color:var(--blue)}
+.conflict-msg{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--red-bg);border:1px solid rgba(231,68,60,.35);border-radius:4px;font-family:var(--mono);font-size:11px;color:var(--red);margin-bottom:8px}
+.detail-field{display:flex;flex-direction:column;gap:4px}
+.detail-field .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)}
+.detail-field .val{font-size:12px;color:var(--text)}
+
+/* Comment save button */
+.comment-wrap{position:relative;margin-top:10px}
+.comment-save-btn{
+  margin-top:6px;padding:5px 14px;border-radius:4px;border:1px solid var(--border2);
+  background:var(--surface);color:var(--text-muted);font-family:var(--mono);font-size:10px;
+  cursor:pointer;transition:all .15s;
+}
+.comment-save-btn:hover{border-color:var(--green);color:var(--green)}
+
+/* Reference links */
+.ref-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ref-link-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:4px;
+  border:1px solid var(--border2);background:var(--surface);
+  color:var(--text-muted);font-family:var(--mono);font-size:10px;
+  text-decoration:none;transition:all .15s;cursor:pointer;
+}
+.ref-link-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ref-link-btn.ref-sublimation:hover{border-color:var(--purple);color:var(--purple)}
+
+/* Product detail */
+.prod-detail-list{margin-top:12px}
+.pdl-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.pdl-item{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:10px 12px;margin-bottom:6px}
+.pdl-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pdl-name{font-size:12px;font-weight:500;color:var(--text)}
+.pdl-code{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:1px 6px;border-radius:2px;border:1px solid var(--border)}
+.size-chips{display:flex;flex-wrap:wrap;gap:5px}
+/* Gender-colored chips */
+.schip{display:flex;align-items:center;gap:4px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:11px}
+.schip .sz{font-weight:500}
+.schip .sq{opacity:.7}
+.schip.sex-male   {border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.08)}
+.schip.sex-male .sz{color:#3b82f6}
+.schip.sex-female {border-color:rgba(236,72,153,.4);background:rgba(236,72,153,.08)}
+.schip.sex-female .sz{color:#ec4899}
+.schip.sex-child  {border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.08)}
+.schip.sex-child .sz{color:#22c55e}
+.schip.sex-uni    {border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08)}
+.schip.sex-uni .sz{color:#f59e0b}
+.done-fraction{font-family:var(--mono);font-size:12px}
+.done-fraction.partial{color:var(--yellow)}
+.done-fraction.full{color:var(--green)}
+
+.status-sel{background:var(--surface2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:5px 8px;cursor:pointer;outline:none}
+
+/* ══════════════════════════════════════════════
+   КАЛЕНДАР
+   ══════════════════════════════════════════════ */
+.cal-wrap{position:sticky;top:72px}
+.cal-month{margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.cal-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.cal-name{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)}
+.cal-grid{padding:8px 10px 10px}
+.cal-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+.cal-dow span{text-align:center;font-size:9px;color:var(--text-dim);padding:2px}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cday{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:var(--text-muted);border-radius:3px;transition:background .1s;position:relative}
+.cday.empty{opacity:0}
+.cday.today{color:var(--accent);font-weight:600}
+.cday.today::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--accent)}
+.cday.has-ev{cursor:pointer}
+.cday.ev-tier{background:rgba(79,142,247,.2);color:var(--text)}
+.cday.ev-sh{background:rgba(46,204,113,.15);color:var(--text)}
+.cday.ev-both{background:linear-gradient(135deg,rgba(79,142,247,.25) 50%,rgba(46,204,113,.2) 50%);color:var(--text)}
+.cday.has-ev:hover{opacity:.8;filter:brightness(1.15)}
+.cday.has-deadline::before{content:'';position:absolute;top:2px;right:2px;width:4px;height:4px;border-radius:50%;background:var(--red);z-index:1}
+.cday.conflict-day{box-shadow:inset 0 0 0 2px var(--red)!important}
+.cal-legend{display:flex;gap:12px;padding:6px 10px;border-top:1px solid var(--border);background:var(--surface2)}
+.cal-leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--text-dim)}
+.cal-leg-dot{width:8px;height:8px;border-radius:2px}
+.leg-tier{background:rgba(79,142,247,.3)}
+.leg-sh{background:rgba(46,204,113,.25)}
+
+/* ══════════════════════════════════════════════
+   ВИРОБИ, ДОВІДНИК, АРХІВ — стилі без змін
+   ══════════════════════════════════════════════ */
+.vt-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:7px;overflow:hidden}
+.vt-head{display:flex;align-items:center;padding:10px 14px;cursor:pointer;transition:background .15s;gap:10px}
+.vt-head:hover{background:var(--surface2)}
+.vt-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);flex:1}
+.vt-code{font-size:10px;color:var(--text-dim);background:var(--surface2);padding:2px 7px;border-radius:3px;border:1px solid var(--border)}
+.vt-cnt{font-size:10px;color:var(--text-dim);margin-right:4px}
+.vt-body{display:none;border-top:1px solid var(--border);background:var(--surface2);padding:12px 14px}
+.vt-item.open .vt-body{display:block}
+.vt-item.open .vt-head-chev{transform:rotate(180deg)}
+.vt-head-chev{font-size:11px;color:var(--text-dim);transition:transform .2s}
+.vt-subtabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px}
+.vt-stab{padding:5px 14px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.06em;cursor:pointer;transition:all .12s}
+.vt-stab:hover{border-color:var(--text-muted);color:var(--text)}
+.vt-stab.st-tier{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.vt-stab.st-sewing{border-color:var(--text-dim);color:var(--text);background:var(--surface2)}
+.vt-stab.st-teams{border-color:var(--yellow);color:var(--yellow);background:var(--yellow-bg)}
+.variant-row{background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:6px;padding:8px 10px;position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.variant-row .vr-del{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:2px 5px;border-radius:3px;transition:color .15s}
+.variant-row .vr-del:hover{color:var(--red)}
+.vav-form{border:1px dashed var(--border2);border-radius:5px;padding:12px;margin-top:8px;background:var(--bg);display:none}
+.vav-form.open{display:block}
+.vav-title{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+.vr-field{display:flex;flex-direction:column;gap:2px}
+.vr-lbl{font-size:9px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono)}
+.vr-val{font-size:11px;color:var(--text-muted);font-family:var(--mono)}
+.dir-section{margin-bottom:24px}
+.dir-title{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.dir-wrap{border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:16px}
+.dir-subtabs{display:flex;gap:4px;margin-bottom:14px}
+.dir-stab{padding:5px 14px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-family:var(--mono);font-size:10px;letter-spacing:.06em;cursor:pointer;transition:all .12s}
+.dir-stab:hover{border-color:var(--text-muted);color:var(--text)}
+.dir-stab.dst-tier{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.dir-stab.dst-sewing{border-color:var(--text-dim);color:var(--text);background:var(--surface2)}
+.dir-group{border:1px solid var(--border);border-radius:5px;margin-bottom:6px;overflow:hidden}
+.dir-group-head{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--surface);cursor:pointer;transition:background .15s}
+.dir-group-head:hover{background:var(--surface2)}
+.dir-group-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text)}
+.dir-group-cnt{font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-right:8px}
+.dir-group-chev{font-size:10px;color:var(--text-dim);transition:transform .2s}
+.dir-group.open .dir-group-chev{transform:rotate(180deg)}
+.dir-group-body{display:none;border-top:1px solid var(--border)}
+.dir-group.open .dir-group-body{display:block}
+.dir-variant-row{display:grid;grid-template-columns:1fr 120px 1fr;gap:8px;padding:7px 14px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px}
+.dir-variant-row:last-child{border-bottom:none}
+.dir-variant-row:hover{background:var(--surface2)}
+.dvr-color{color:var(--text-muted)}
+.dvr-code{color:var(--text-dim)}
+.dvr-comment{color:var(--text-dim);font-size:10px}
+.arch-month{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+.arch-month-head{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;background:var(--surface);cursor:pointer;transition:background .15s}
+.arch-month-head:hover{background:var(--surface2)}
+.arch-month-name{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text)}
+.arch-month-cnt{font-family:var(--mono);font-size:11px;color:var(--text-dim)}
+.arch-month-body{display:none;border-top:1px solid var(--border)}
+.arch-month.open .arch-month-body{display:block}
+.arch-chev{font-size:11px;color:var(--text-dim);transition:transform .2s}
+.arch-month.open .arch-chev{transform:rotate(180deg)}
+.arch-order{border-bottom:1px solid var(--border)}
+.arch-order:last-child{border-bottom:none}
+.arch-order-head{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;background:var(--surface);transition:background .15s}
+.arch-order-head:hover{background:var(--surface2)}
+.arch-order-no{font-family:var(--mono);font-size:10px;color:var(--text-dim);width:70px}
+.arch-order-name{flex:1;font-size:12px;color:var(--text);font-family:var(--mono)}
+.arch-order-dl{font-size:11px;color:var(--text-dim);font-family:var(--mono)}
+.arch-order-body{display:none;background:var(--surface2);padding:12px 16px;border-top:1px solid var(--border)}
+.arch-order.open .arch-order-body{display:block}
+.arch-order-chev{font-size:10px;color:var(--text-dim);transition:transform .2s}
+.arch-order.open .arch-order-chev{transform:rotate(180deg)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:8px;width:min(640px,96vw);max-height:88vh;overflow-y:auto;padding:20px 24px;position:relative;transform:translateY(12px);transition:transform .2s}
+.modal-overlay.open .modal-box{transform:translateY(0)}
+.modal-title{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.modal-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;padding:2px 6px}
+.modal-close:hover{color:var(--red)}
+.add-mat-btn{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:3px;border:1px dashed var(--border2);background:transparent;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all .12s;vertical-align:middle;margin-left:6px}
+.add-mat-btn:hover{border-color:var(--accent);color:var(--accent)}
+.inline-mat-form{display:none;margin-top:6px;padding:10px 12px;background:var(--bg);border:1px dashed var(--border2);border-radius:4px}
+.inline-mat-form.open{display:grid;gap:6px;align-items:end;margin-top:6px}
+.dtag{display:inline-block;padding:1px 7px;border-radius:2px;font-size:9px;border:1px solid;margin:1px}
+.dtag-fabric{background:rgba(46,204,113,.08);color:var(--green);border-color:rgba(46,204,113,.2)}
+.dtag-branding{background:rgba(249,115,22,.08);color:var(--orange);border-color:rgba(249,115,22,.2)}
+.empty-state{text-align:center;padding:40px;color:var(--text-dim);font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted)}
+.info-pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;color:var(--text-dim);padding:3px 9px;border:1px solid var(--border);border-radius:20px}
+.date-val.conflict-date{color:var(--red)!important;font-weight:500}
+.conflict-hdr-icon{font-size:13px;margin-left:4px}
+
+/* ── PRINT ── */
+@media print{
+  #auth-overlay,#toast-container,#batch-panel,.header,.tabs,.filter-bar,
+  .create-header,.create-body,.cal-wrap,.btn-print,.no-print,.chevron,
+  .col-check,.comment-save-btn,.status-sel,.ref-link-btn{display:none!important}
+  body{background:#fff!important;color:#000!important}
+  .order-detail{display:table-row!important}
+  .detail-cell,.order-head td{background:#fff!important;color:#000!important}
+  a[href].ref-link-btn-print::after{content:" ("attr(href)")";font-size:9px;color:#555}
+  @page{margin:15mm}
+}
+
+/* ══ TYPE FILTER BAR ══ */
+.type-filter-bar{
+  display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:center;
+}
+.fbtn.type-filter.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.fbtn.f-tier.active  {border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.fbtn.f-teams.active {border-color:var(--yellow);color:var(--yellow);background:var(--yellow-bg)}
+.fbtn.f-sewing.active{border-color:var(--text-dim);color:var(--text);background:var(--surface2)}
+
+/* ══ DASHBOARD BADGE — над цифрою, в потоці ══ */
+.stat{display:flex;flex-direction:column;gap:0;align-items:flex-start}
+.stat-badge-row{height:18px;display:flex;align-items:center;margin-bottom:1px}
+.stat-badge-ph{display:inline-block;height:16px}
+.stat-new-badge{
+  display:inline-block;
+  background:var(--blue);color:#fff;
+  font-family:var(--mono);font-size:8px;
+  padding:1px 6px;border-radius:10px;
+  font-weight:600;letter-spacing:.05em;
+  animation:pulse-blue 1.4s ease-in-out infinite;
+}
+.stat-val{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1.1}
+.stat-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--text-dim);text-transform:uppercase;margin-top:2px}
+
+/* ══ ПРИЙНЯТО — teal dot ══ */
+.sb-accepted{
+  background:rgba(20,184,166,.12);
+  color:#0d9488;
+  border:1px solid rgba(20,184,166,.25);
+  display:inline-flex;align-items:center;
+}
+.sb-accepted::before{
+  content:'';display:inline-block;
+  width:8px;height:8px;border-radius:50%;
+  background:#0d9488;margin-right:5px;flex-shrink:0;
+}
+[data-theme="light"] .sb-accepted{background:rgba(20,184,166,.1);color:#0f766e}
+
+/* ══ ФІЛЬТР Прийнято — teal ══ */
+.fbtn.f-acc.active{
+  border-color:#0d9488 !important;
+  color:#0d9488 !important;
+  background:rgba(20,184,166,.1) !important;
+}
+.fbtn.f-acc.active::before{
+  content:'';display:inline-block;
+  width:7px;height:7px;border-radius:50%;
+  background:#0d9488;margin-right:5px;
+}
+
+/* ══ ФІЛЬТР НОВІ — синій ══ */
+.fbtn.status-filter.f-new.active{
+  border-color:var(--blue) !important;
+  color:var(--blue) !important;
+  background:var(--blue-bg) !important;
+}
+
+/* ══ В РОБОТІ dashboard — яскравіший ══ */
+.stat-val.c-work{color:#f59e0b}
+[data-theme="light"] .stat-val.c-work{color:#d97706}
+
+/* ══ ТАБЛИЦЯ — фіксовані ширини ══ */
+.orders-table{table-layout:fixed;width:100%}
+.orders-table th,.orders-table td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.orders-table td.nodim{white-space:normal;word-break:break-word}
+
+/* ══ ШИРИНИ ТД ══ */
+.orders-table th:not(.col-check):not(:nth-child(3)){white-space:nowrap}
+
+
+/* ══ CUSTOM STATUS DROPDOWN ══ */
+.status-wrap{position:relative;display:inline-block}
+.status-current{
+  display:inline-flex;align-items:center;gap:6px;
+  cursor:pointer;padding:3px 6px 3px 4px;
+  border:1px solid var(--border2);border-radius:5px;
+  background:var(--surface2);transition:border-color .15s;
+  user-select:none;
+}
+.status-current:hover{border-color:var(--accent)}
+.status-chev{font-size:9px;color:var(--text-dim);margin-left:2px}
+.status-dropdown{
+  position:absolute;top:calc(100% + 4px);left:0;
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:7px;z-index:300;
+  min-width:165px;
+  box-shadow:0 4px 20px rgba(0,0,0,.15);
+  overflow:hidden;display:none;
+}
+.status-dropdown.open{display:block}
+.status-opt{
+  display:flex;align-items:center;
+  padding:8px 12px;cursor:pointer;
+  transition:background .1s;
+}
+.status-opt:hover{background:var(--surface2)}
+
+
+/* ══ COMMENT WRAP — не виходить за межі ══ */
+.comment-wrap{margin-top:10px;width:100%}
+.comment-wrap textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:60px}
+.comment-save-btn{display:inline-block;margin-top:6px}
+
+</style>
+</head>
+<body>
+
+<!-- ══════ AUTH OVERLAY ══════ -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">TIER<span>.</span>MFG</div>
+    <div class="auth-sub">СИСТЕМА УПРАВЛІННЯ ВИРОБНИЦТВОМ</div>
+    <div id="g-signin-btn"></div>
+    <div class="auth-denied" id="auth-denied">
+      ⛔ Доступ заборонено.<br>Зв'яжіться з адміністратором системи.
+    </div>
+  </div>
+</div>
+
+<!-- ══════ TOAST ══════ -->
+<div id="toast-container"></div>
+
+<!-- ══════ BATCH PANEL ══════ -->
+<div id="batch-panel">
+  <span>Обрано: <b id="batch-count">0</b></span>
+  <button class="batch-btn" onclick="batchPrint()">🖨️ Друкувати</button>
+  <button class="batch-btn" onclick="openBatchStatus()">🔄 Змінити статус</button>
+  <button class="batch-btn" onclick="clearSelection()">Скасувати</button>
+</div>
+
+<!-- Batch status select (hidden) -->
+<select id="batch-status-sel" style="display:none" onchange="batchChangeStatus(this.value)">
+  <option value="">— обери статус —</option>
+</select>
+
+<!-- ══════ ШАПКА ══════ -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">TIER<span>.</span>MFG</div>
+    <div class="header-meta" id="hdr-clock">СИСТЕМА УПРАВЛІННЯ ВИРОБНИЦТВОМ</div>
+  </div>
+  <div class="header-right">
+    <span class="user-email" id="user-email-display"></span>
+    <button class="theme-btn" onclick="toggleTheme()" title="Переключити тему" id="theme-btn">☀️</button>
+  </div>
+</div>
+
+<!-- ══════ ВКЛАДКИ ══════ -->
+<div class="tabs">
+  <button class="tab active" onclick="goTab('orders',this)">📋 ЗАМОВЛЕННЯ</button>
+  <button class="tab" onclick="goTab('archive',this)">📦 АРХІВ</button>
+  <button class="tab" onclick="goTab('vt',this)">📦 ВИРОБИ</button>
+  <button class="tab" onclick="goTab('directory',this)">🧵 МАТЕРІАЛИ</button>
+</div>
+
+<!-- ══════════════ ЗАМОВЛЕННЯ ══════════════ -->
+<div class="page active" id="page-orders">
+  <div class="orders-layout">
+    <div>
+      <div class="stats-bar" id="stats-bar"></div>
+      <div class="type-filter-bar">
+        <span class="filter-lbl">Тип:</span>
+        <button class="fbtn type-filter active" onclick="setTypeFilter('all',this)">Всі типи</button>
+        <button class="fbtn type-filter f-tier"  onclick="setTypeFilter('tier',this)">⬡ TIER</button>
+        <button class="fbtn type-filter f-teams" onclick="setTypeFilter('teams',this)">👥 Команди</button>
+        <button class="fbtn type-filter f-sewing" onclick="setTypeFilter('sewing',this)">🧵 Швейка</button>
+      </div>
+      <div class="filter-bar">
+        <span class="filter-lbl">Фільтр:</span>
+        <button class="fbtn status-filter active"    onclick="setFilter('all',this)">Всі</button>
+        <button class="fbtn status-filter f-new"     onclick="setFilter('new',this)">🔵 НОВІ</button>
+        <button class="fbtn status-filter f-acc"     onclick="setFilter('accepted',this)">Прийнято</button>
+        <button class="fbtn status-filter f-sub"     onclick="setFilter('sublimation',this)">🟣 Сублімація</button>
+        <button class="fbtn status-filter f-roz"     onclick="setFilter('rozkroi',this)">🟠 Розкрій</button>
+        <button class="fbtn status-filter f-shv"     onclick="setFilter('shveika',this)">🟡 Цех</button>
+        <button class="fbtn status-filter f-done"    onclick="setFilter('done',this)">🟢 Готово</button>
+        <button class="fbtn status-filter f-over"    onclick="setFilter('overdue',this)">⚠️ Протерміновані</button>
+        <button class="fbtn status-filter f-closed"  onclick="setFilter('closed',this)">⚫ Закриті</button>
+      </div>
+
+      <!-- Форма нового замовлення -->
+      <div class="create-header closed" id="createHdr" onclick="toggleCreate()">
+        <div class="create-header-label">➕ Створити нове замовлення</div>
+        <div class="create-icon">+</div>
+      </div>
+      <div class="create-body" id="createBody">
+        <div class="create-inner">
+          <div class="form-row" style="grid-template-columns:80px 1fr 1fr 1fr">
+            <div class="fg"><label class="lbl">№</label><input type="text" id="f-no" class="input-auto" readonly></div>
+            <div class="fg"><label class="lbl">Дата</label><input type="text" id="f-date" class="input-auto" readonly></div>
+            <div class="fg"><label class="lbl">Назва замовлення</label><input type="text" id="f-name" placeholder="Назва..."></div>
+            <div class="fg"><label class="lbl">Дедлайн</label><input type="date" id="f-deadline"></div>
+          </div>
+          <div class="form-row" style="grid-template-columns:1fr 1fr">
+            <div class="fg">
+              <label class="lbl">Референс (посилання)</label>
+              <div class="url-field-wrap">
+                <input type="url" id="f-reference" placeholder="https://...">
+                <button class="url-open-btn" onclick="openUrl('f-reference')" title="Відкрити посилання">🔗</button>
+              </div>
+            </div>
+            <div class="fg">
+              <label class="lbl">Сублімація (посилання)</label>
+              <div class="url-field-wrap">
+                <input type="url" id="f-sublimation-url" placeholder="https://...">
+                <button class="url-open-btn" onclick="openUrl('f-sublimation-url')" title="Відкрити посилання">🔗</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-row" style="grid-template-columns:auto 1fr">
+            <div class="fg" style="justify-content:flex-end;padding-bottom:2px">
+              <label class="lbl">Тип замовлення</label>
+              <div class="otype-btns">
+                <button class="otype-btn active-sewing" id="otype-sewing" onclick="setOrderType('sewing')">🧵 Швейка</button>
+                <button class="otype-btn" id="otype-tier"   onclick="setOrderType('tier')">⬡ TIER</button>
+                <button class="otype-btn" id="otype-teams"  onclick="setOrderType('teams')">👥 Команди</button>
+              </div>
+            </div>
+            <div></div>
+          </div>
+          <div class="prod-section-lbl">Вироби замовлення</div>
+          <div id="prod-container"></div>
+          <div class="row" style="margin-top:6px">
+            <button class="btn-add-prod" onclick="addProdBlock()">+ Додати виріб</button>
+          </div>
+          <div class="form-row" style="margin-top:10px">
+            <div class="fg">
+              <label class="lbl">Коментар (необов'язково)</label>
+              <textarea id="f-comment" placeholder="Коментар до замовлення..." style="min-height:48px"></textarea>
+            </div>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+          <div class="row">
+            <button class="btn btn-primary" onclick="submitOrder()">Створити →</button>
+            <button class="btn" onclick="resetForm()">Скинути</button>
+            <span class="err" id="form-err"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Список замовлень -->
+      <div class="section-header">
+        <div class="section-title">Список замовлень</div>
+        <span class="info-pill" id="orders-count">0 замовлень</span>
+      </div>
+      <div class="orders-wrap">
+        <table class="orders-table" id="orders-table">
+          <colgroup>
+            <col style="width:36px">
+            <col style="width:60px">
+            <col>
+            <col style="width:70px">
+            <col style="width:70px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:120px">
+            <col style="width:28px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="col-check" style="width:32px;padding:9px 6px 9px 14px;text-align:center"><input type="checkbox" class="order-cb" id="cb-all" onchange="toggleSelectAll(this.checked)"></th>
+              <th class="sortable" onclick="sortByCol('no',this)">№</th>
+              <th>Назва</th>
+              <th class="sortable dt-left"  onclick="sortByCol('created',this)">Створено</th>
+              <th class="sortable dt-right" onclick="sortByCol('deadline',this)">Дедлайн</th>
+              <th class="sortable dt-left"  onclick="sortByCol('workStart',this)">В-цтво поч.</th>
+              <th class="sortable dt-right" onclick="sortByCol('workEnd',this)">В-цтво кін.</th>
+              <th class="sortable" onclick="sortByCol('status',this)">Статус</th>
+              <th style="width:28px"></th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+    <div class="cal-wrap" id="cal-wrap"></div>
+  </div>
+</div>
+
+<!-- ══════════════ АРХІВ ══════════════ -->
+<div class="page" id="page-archive">
+  <div class="section-header"><div class="section-title">📦 Архів закритих замовлень</div></div>
+  <div id="archive-list"></div>
+</div>
+
+<!-- ══════════════ ВИРОБИ ══════════════ -->
+<div class="page" id="page-vt">
+  <div class="section-header">
+    <div class="section-title">📦 Довідник виробів</div>
+    <span class="info-pill" id="vt-count"></span>
+  </div>
+  <div class="vt-subtabs">
+    <button class="vt-stab st-tier" id="vstab-tier"   onclick="setVtType('tier')">⬡ TIER</button>
+    <button class="vt-stab"         id="vstab-sewing" onclick="setVtType('sewing')">🧵 Швейка</button>
+    <button class="vt-stab"         id="vstab-teams"  onclick="setVtType('teams')">👥 Команди</button>
+  </div>
+  <div class="create-header closed" id="vtFormHdr" onclick="toggleVtForm()" style="margin-bottom:14px">
+    <div class="create-header-label">➕ Додати новий виріб</div>
+    <div class="create-icon">+</div>
+  </div>
+  <div class="create-body" id="vtFormBody">
+    <div class="create-inner">
+      <div class="form-row" style="grid-template-columns:1fr 120px 120px">
+        <div class="fg"><label class="lbl">Назва виробу</label><input type="text" id="vt-name" placeholder="Назва..."></div>
+        <div class="fg"><label class="lbl">Код</label><input type="text" id="vt-code" placeholder="RG001"></div>
+        <div class="fg"><label class="lbl">Стать</label>
+          <select id="vt-sex"><option value="">—</option><option>Жіноча</option><option>Чоловіча</option><option>Унісекс</option><option>Дитяча</option></select>
+        </div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:end">
+        <div class="fg">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label class="lbl" style="margin:0">Тканина</label>
+            <button class="add-mat-btn" onclick="toggleInlineMat('vt-mat-form')" type="button">+ нова</button>
+          </div>
+          <select id="vt-fabric" onchange="vtFabricChange('vt')"><option value="">— з довідника —</option></select>
+        </div>
+        <div class="fg"><label class="lbl">Колір</label><select id="vt-color" onchange="vtColorChange('vt')"><option value="">—</option></select></div>
+        <div class="fg"><label class="lbl">Артикул тканини</label><input type="text" id="vt-art" placeholder="—" class="input-auto" readonly disabled></div>
+        <div class="fg"><label class="lbl">Штрихкод</label><input type="text" id="vt-barcode" placeholder="RG001BN..."></div>
+      </div>
+      <div class="inline-mat-form" id="vt-mat-form" style="grid-template-columns:1fr 120px 120px auto">
+        <div class="fg"><label class="lbl">Назва тканини</label><input type="text" id="vt-new-fab-name" placeholder="Назва тканини"></div>
+        <div class="fg"><label class="lbl">Колір</label><input type="text" id="vt-new-fab-color" placeholder="Колір"></div>
+        <div class="fg"><label class="lbl">Код</label><input type="text" id="vt-new-fab-code" placeholder="201"></div>
+        <button class="btn btn-sm btn-primary" onclick="addInlineMat('vt','fabric')" type="button" style="align-self:end">Додати</button>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr;align-items:end">
+        <div class="fg">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <label class="lbl" style="margin:0">Брендування (код)</label>
+            <button class="add-mat-btn" onclick="toggleInlineMat('vt-brand-form')" type="button">+ нове</button>
+          </div>
+          <select id="vt-brand-code" onchange="vtBrandChange('vt')"><option value="-">— без брендування —</option></select>
+        </div>
+        <div class="fg"><label class="lbl">Матеріал брендування</label><input type="text" id="vt-brand-mat" placeholder="—" class="input-auto" readonly disabled></div>
+        <div class="fg" style="justify-content:flex-end">
+          <label class="lbl">&nbsp;</label>
+          <div class="row"><button class="btn btn-primary btn-sm" onclick="addVtItem()">Додати виріб</button><span class="err" id="vt-err"></span></div>
+        </div>
+      </div>
+      <div class="inline-mat-form" id="vt-brand-form" style="grid-template-columns:1fr 120px auto auto">
+        <div class="fg"><label class="lbl">Матеріал</label><input type="text" id="vt-new-brand-name" placeholder="плівка біла"></div>
+        <div class="fg"><label class="lbl">Код</label><input type="text" id="vt-new-brand-code" placeholder="001"></div>
+        <div></div>
+        <button class="btn btn-sm btn-primary" onclick="addInlineMat('vt','branding')" type="button" style="align-self:end">Додати</button>
+      </div>
+    </div>
+  </div>
+  <div id="vt-list"></div>
+</div>
+
+<!-- ══════════════ МАТЕРІАЛИ ══════════════ -->
+<div class="page" id="page-directory">
+  <div class="section-header"><div class="section-title">🧵 Матеріали</div></div>
+  <div class="dir-subtabs">
+    <button class="dir-stab dst-tier" id="dstab-tier"   onclick="setDirType('tier')">⬡ TIER + Команди</button>
+    <button class="dir-stab"          id="dstab-sewing" onclick="setDirType('sewing')">🧵 Швейка</button>
+  </div>
+  <div class="create-header closed" id="dirFormHdr" onclick="toggleDirForm()" style="margin-bottom:14px">
+    <div class="create-header-label">➕ Додати матеріал</div>
+    <div class="create-icon">+</div>
+  </div>
+  <div class="create-body" id="dirFormBody">
+    <div class="create-inner">
+      <div class="form-row" style="grid-template-columns:130px 1fr 1fr 1fr 1.4fr auto">
+        <div class="fg"><label class="lbl">Вид</label>
+          <select id="dir-type">
+            <option value="fabric_tier">Тканина (TIER)</option>
+            <option value="fabric_sewing">Тканина (Швейка)</option>
+            <option value="branding_tier">Брендування (TIER)</option>
+            <option value="branding_sewing">Брендування (Швейка)</option>
+          </select>
+        </div>
+        <div class="fg"><label class="lbl">Назва</label><input type="text" id="dir-name" placeholder="Назва матеріалу"></div>
+        <div class="fg"><label class="lbl">Колір</label><input type="text" id="dir-color" placeholder="Колір"></div>
+        <div class="fg"><label class="lbl">Код</label><input type="text" id="dir-code" placeholder="FAB-01"></div>
+        <div class="fg"><label class="lbl">Коментар</label><input type="text" id="dir-comment" placeholder="Примітка..."></div>
+        <input type="hidden" id="dir-mat" value="">
+        <div class="fg" style="justify-content:flex-end">
+          <label class="lbl">&nbsp;</label>
+          <div class="row"><button class="btn btn-primary btn-sm" onclick="addDirItem()">Додати</button><span class="err" id="dir-err"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="dir-sections"></div>
+</div>
+
+<!-- ══════ MODALS ══════ -->
+<div class="modal-overlay" id="modal-new-variant">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span id="mnv-title">➕ Новий варіант</span>
+      <button class="modal-close" onclick="closeModal('modal-new-variant')">✕</button>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:end">
+      <div class="fg">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Тканина</label>
+          <button class="add-mat-btn" onclick="toggleInlineMat('mnv-mat-form')" type="button">+ нова</button>
+        </div>
+        <select id="mnv-fabric" onchange="vtFabricChange('mnv')"><option value="">— з довідника —</option></select>
+      </div>
+      <div class="fg"><label class="lbl">Колір</label><select id="mnv-color" onchange="vtColorChange('mnv')"><option value="">—</option></select></div>
+      <div class="fg"><label class="lbl">Артикул</label><input type="text" id="mnv-art" class="input-auto" readonly disabled placeholder="—"></div>
+      <div class="fg"><label class="lbl">Штрихкод</label><input type="text" id="mnv-barcode" placeholder="RG001BN..."></div>
+    </div>
+    <div class="inline-mat-form" id="mnv-mat-form" style="grid-template-columns:1fr 120px 120px auto">
+      <div class="fg"><label class="lbl">Назва тканини</label><input type="text" id="mnv-new-fab-name"></div>
+      <div class="fg"><label class="lbl">Колір</label><input type="text" id="mnv-new-fab-color"></div>
+      <div class="fg"><label class="lbl">Код</label><input type="text" id="mnv-new-fab-code"></div>
+      <button class="btn btn-sm btn-primary" onclick="addInlineMat('mnv','fabric')" type="button" style="align-self:end">Додати</button>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 100px;align-items:end">
+      <div class="fg"><label class="lbl">Стать</label><select id="mnv-sex"><option value="">—</option><option>Жіноча</option><option>Чоловіча</option><option>Унісекс</option><option>Дитяча</option></select></div>
+      <div class="fg">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Брендування</label>
+          <button class="add-mat-btn" onclick="toggleInlineMat('mnv-brand-form')" type="button">+ нове</button>
+        </div>
+        <select id="mnv-brand-code" onchange="vtBrandChange('mnv')"><option value="-">— без —</option></select>
+      </div>
+      <div class="fg"><label class="lbl">Матеріал</label><input type="text" id="mnv-brand-mat" class="input-auto" readonly disabled placeholder="—"></div>
+    </div>
+    <div class="inline-mat-form" id="mnv-brand-form" style="grid-template-columns:1fr 100px auto auto">
+      <div class="fg"><label class="lbl">Матеріал</label><input type="text" id="mnv-new-brand-name"></div>
+      <div class="fg"><label class="lbl">Код</label><input type="text" id="mnv-new-brand-code"></div>
+      <div></div>
+      <button class="btn btn-sm btn-primary" onclick="addInlineMat('mnv','branding')" type="button" style="align-self:end">Додати</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <div class="row">
+      <button class="btn btn-primary" onclick="submitModalVariant()">Зберегти варіант →</button>
+      <button class="btn" onclick="closeModal('modal-new-variant')">Скасувати</button>
+      <span class="err" id="mnv-err"></span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-new-product">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span id="mnp-title">➕ Новий виріб</span>
+      <button class="modal-close" onclick="closeModal('modal-new-product')">✕</button>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 100px">
+      <div class="fg"><label class="lbl">Назва виробу</label><input type="text" id="mnp-name" placeholder="Назва..."></div>
+      <div class="fg"><label class="lbl">Код</label><input type="text" id="mnp-code" placeholder="RG001"></div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="lbl" style="display:block;margin-bottom:6px">Каталог виробу</label>
+      <div class="otype-btns">
+        <button class="otype-btn" id="mnp-type-sewing" onclick="setMnpType('sewing')">🧵 Швейка</button>
+        <button class="otype-btn" id="mnp-type-tier"   onclick="setMnpType('tier')">⬡ TIER</button>
+        <button class="otype-btn" id="mnp-type-teams"  onclick="setMnpType('teams')">👥 Команди</button>
+      </div>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;align-items:end">
+      <div class="fg">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Тканина</label>
+          <button class="add-mat-btn" onclick="toggleInlineMat('mnp-mat-form')" type="button">+ нова</button>
+        </div>
+        <select id="mnp-fabric" onchange="vtFabricChange('mnp')"><option value="">— з довідника —</option></select>
+        <div class="inline-mat-form" id="mnp-mat-form">
+          <div class="fg"><label class="lbl">Назва</label><input type="text" id="mnp-new-fab-name"></div>
+          <div class="fg"><label class="lbl">Колір</label><input type="text" id="mnp-new-fab-color"></div>
+          <div class="fg"><label class="lbl">Код</label><input type="text" id="mnp-new-fab-code"></div>
+          <button class="btn btn-sm btn-primary" onclick="addInlineMat('mnp','fabric')" type="button">Додати</button>
+        </div>
+      </div>
+      <div class="fg"><label class="lbl">Колір</label><select id="mnp-color" onchange="vtColorChange('mnp')"><option value="">—</option></select></div>
+      <div class="fg"><label class="lbl">Артикул</label><input type="text" id="mnp-art" class="input-auto" readonly disabled placeholder="—"></div>
+      <div class="fg"><label class="lbl">Штрихкод</label><input type="text" id="mnp-barcode" placeholder="RG001BN..."></div>
+    </div>
+    <div class="form-row" style="grid-template-columns:1fr 1fr 100px;align-items:end">
+      <div class="fg"><label class="lbl">Стать</label><select id="mnp-sex"><option value="">—</option><option>Жіноча</option><option>Чоловіча</option><option>Унісекс</option><option>Дитяча</option></select></div>
+      <div class="fg">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <label class="lbl" style="margin:0">Брендування</label>
+          <button class="add-mat-btn" onclick="toggleInlineMat('mnp-brand-form')" type="button">+ нове</button>
+        </div>
+        <select id="mnp-brand-code" onchange="vtBrandChange('mnp')"><option value="-">— без брендування —</option></select>
+        <div class="inline-mat-form" id="mnp-brand-form">
+          <div class="fg"><label class="lbl">Матеріал</label><input type="text" id="mnp-new-brand-name"></div>
+          <div class="fg"><label class="lbl">Код</label><input type="text" id="mnp-new-brand-code"></div>
+          <div class="fg"></div>
+          <button class="btn btn-sm btn-primary" onclick="addInlineMat('mnp','branding')" type="button">Додати</button>
+        </div>
+      </div>
+      <div class="fg"><label class="lbl">Матеріал</label><input type="text" id="mnp-brand-mat" class="input-auto" readonly disabled placeholder="—"></div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <div class="row">
+      <button class="btn btn-primary" onclick="submitModalProduct()">Зберегти виріб →</button>
+      <button class="btn" onclick="closeModal('modal-new-product')">Скасувати</button>
+      <span class="err" id="mnp-err"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  КОНФІГУРАЦІЯ — ЗМІНИТИ ПІД СВІЙ ПРОЕКТ
+// ════════════════════════════════════════════════
+const API_URL = "https://script.google.com/macros/s/AKfycbw_PFLniFYsrMuUXAqN9ByPt1kGh9r_3S-kq3Fn4yR5LZ-k56ycvhKZFXXbJLNS9ULk/exec"; // https://script.google.com/macros/s/.../exec
+const GOOGLE_CLIENT_ID = ""; // з Google Cloud Console
+
+// ════════════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════════════
+let currentUserEmail = null;
+let currentIdToken   = null;
+
+function initGoogleSignIn() {
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('ВСТАВИТИ')) {
+    hideAuthOverlay();
+    loadFromSheets();  // ← додали
+    return;
+}
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: true,
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('g-signin-btn'),
+    { theme: 'outline', size: 'large', text: 'signin_with', locale: 'uk' }
+  );
+  // Спробувати автовхід
+  google.accounts.id.prompt();
+}
+
+async function handleGoogleCredential(response) {
+  currentIdToken = response.credential;
+  // Декодуємо payload (не перевіряємо підпис тут — сервер перевіряє)
+  try {
+    const payload = JSON.parse(atob(currentIdToken.split('.')[1]));
+    currentUserEmail = payload.email;
+  } catch(e) {}
+
+  // Перевіряємо на сервері
+  const result = await apiGet('checkAuth');
+  if (result && result.ok) {
+    document.getElementById('user-email-display').textContent = currentUserEmail || '';
+    hideAuthOverlay();
+    loadFromSheets();
+  } else {
+    document.getElementById('auth-denied').classList.add('show');
+    currentUserEmail = null;
+    currentIdToken   = null;
+  }
+}
+
+function hideAuthOverlay() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+}
+
+// ════════════════════════════════════════════════
+//  ТЕМА
+// ════════════════════════════════════════════════
+
+function toggleStatusDd(id) {
+  const dd = document.getElementById('sdd-'+id);
+  if (!dd) return;
+  const isOpen = dd.classList.contains('open');
+  closeAllStatusDd();
+  if (!isOpen) dd.classList.add('open');
+}
+function closeAllStatusDd() {
+  document.querySelectorAll('.status-dropdown.open').forEach(el => el.classList.remove('open'));
+}
+document.addEventListener('click', () => closeAllStatusDd());
+
+function initTheme() {
+  const saved = localStorage.getItem('tier-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('theme-btn').textContent = saved === 'light' ? '🌙' : '☀️';
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('tier-theme', next);
+  document.getElementById('theme-btn').textContent = next === 'light' ? '🌙' : '☀️';
+}
+
+// ════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════
+function showToast(msg, duration = 2500) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  c.appendChild(t);
+  requestAnimationFrame(() => { requestAnimationFrame(() => t.classList.add('show')); });
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 300);
+  }, duration);
+}
+
+// ════════════════════════════════════════════════
+//  API
+// ════════════════════════════════════════════════
+function authParams() {
+  const p = {};
+  if (currentIdToken)   p.idToken = currentIdToken;
+  if (currentUserEmail) p.email   = currentUserEmail;
+  return p;
+}
+
+async function apiGet(action, extraParams = {}) {
+  if (!API_URL || API_URL.startsWith('ВСТАВИТИ')) return null;
+  try {
+    const p = new URLSearchParams({ action, ...authParams(), ...extraParams });
+    const r = await fetch(`${API_URL}?${p}`);
+    return await r.json();
+  } catch(e) { console.error('apiGet', action, e); return null; }
+}
+
+async function apiPost(payload) {
+  if (!API_URL || API_URL.startsWith('ВСТАВИТИ')) return null;
+  try {
+    const r = await fetch(API_URL, {
+      method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ ...authParams(), ...payload }),
+    });
+    return await r.json();
+  } catch(e) { console.error('apiPost', e); return null; }
+}
+
+function safeJson(str) { try { return JSON.parse(str || '[]'); } catch { return []; } }
+
+// ════════════════════════════════════════════════
+//  ЗАВАНТАЖЕННЯ ДАНИХ
+// ════════════════════════════════════════════════
+async function loadFromSheets() {
+  try {
+    const [rawOrders, rawArchive, rawVt, rawDir] = await Promise.all([
+      apiGet('getOrders'), apiGet('getArchive'),
+      apiGet('getVtProducts'), apiGet('getDirItems'),
+    ]);
+    if (!rawOrders) return;
+
+    if (rawVt) DB.vtProducts = rawVt;
+    if (rawDir) {
+      DB.directory = {
+        fabric_tier:     rawDir.fabric_tier     || [],
+        branding_tier:   rawDir.branding_tier   || [],
+        fabric_sewing:   rawDir.fabric_sewing   || [],
+        branding_sewing: rawDir.branding_sewing || [],
+      };
+    }
+
+    const mapOrder = (o, closed) => ({
+      id:             parseInt(o['№']) || 0,
+      no:             parseInt(o['№']) || 0,
+      created:        String(o['Дата']        || ''),
+      name:           String(o['Назва']       || ''),
+      deadline:       String(o['Дедлайн']     || ''),
+      tier:           o['Tier']  === 'ТАК',
+      teams:          o['Teams'] === 'ТАК',
+      status:         closed ? 'closed' : normalizeStatus(o['Статус']),
+      workStart:      String(o['Початок']     || ''),
+      workEnd:        String(o['Кінець']      || ''),
+      products:       safeJson(o['Вироби']),
+      comment:        String(o['Коментар']    || ''),
+      referenceUrl:   String(o['Референс']    || ''),
+      sublimationUrl: String(o['Сублімація URL'] || o['Сублімація'] || ''),
+      closed,
+    });
+
+    DB.orders = [
+      ...(rawOrders  || []).map(o => mapOrder(o, false)),
+      ...(rawArchive || []).map(o => mapOrder(o, true)),
+    ];
+    nextOrderNo = DB.orders.length ? Math.max(...DB.orders.map(o => o.no || 0)) + 1 : 1;
+
+    renderStats(); renderOrders(); renderCalendar();
+    renderArchive(); renderVt(); renderDir();
+  } catch(err) {
+    console.error('loadFromSheets:', err);
+  }
+}
+
+async function saveOrderToSheets(order) {
+  await apiPost({
+    action: 'addOrder',
+    created: order.created, name: order.name, deadline: order.deadline,
+    tier: order.tier, teams: order.teams || false,
+    workStart: order.workStart || '', workEnd: order.workEnd || '',
+    productsJson: JSON.stringify(order.products),
+    comment: order.comment || '',
+    referenceUrl:   order.referenceUrl   || '',
+    sublimationUrl: order.sublimationUrl || '',
+  });
+}
+
+async function syncField(no, field, value) {
+  await apiPost({ action: 'updateOrder', no, field, value });
+}
+
+async function syncClose(no) {
+  await apiPost({ action: 'closeOrder', no });
+}
+
+// ════════════════════════════════════════════════
+//  DB
+// ════════════════════════════════════════════════
+let DB = {
+  orders: [],
+  vtProducts: [],
+  directory: { fabric_tier:[], branding_tier:[], fabric_sewing:[], branding_sewing:[] }
+};
+let nextOrderNo = 1;
+let currentTypeFilter = 'all';
+let currentFilter = 'all';
+let currentOrderType = 'sewing';
+let currentVtType = 'tier';
+let currentDirType = 'tier';
+let prodBlockCount = 0;
+
+// Sort state: { col: 'no'|'created'|'workStart'|'status'|null, dir: 'asc'|'desc' }
+let sortState = { col: null, dir: 'asc' };
+
+// Selected order IDs for batch
+let selectedIds = new Set();
+
+// ════════════════════════════════════════════════
+//  СТАТУСИ
+// ════════════════════════════════════════════════
+const SLABELS = {
+  new:         '🔵 НОВЕ',
+  accepted:    'Прийнято',
+  sublimation: '🟣 Сублімація',
+  rozkroi:     '🟠 Розкрій',
+  shveika:     '🟡 Цех',
+  done:        '🟢 Готово',
+  closed:      '⚫ Закрито',
+};
+const SCLASS = {
+  new:'sb-new', accepted:'sb-accepted', sublimation:'sb-sublimation',
+  rozkroi:'sb-rozkroi', shveika:'sb-shveika', done:'sb-done', closed:'sb-closed',
+};
+const SLABELS_REV = {};
+Object.entries(SLABELS).forEach(([k,v]) => {
+  SLABELS_REV[v] = k;
+  SLABELS_REV[v.replace(/^\S+\s/,'')] = k;
+});
+// Зворотня сумісність зі старими записами в таблиці
+SLABELS_REV['Не почато']  = 'new';
+SLABELS_REV['НОВЕ']       = 'new';
+SLABELS_REV['Нове']       = 'new';
+SLABELS_REV['Прийнято']   = 'accepted';
+SLABELS_REV['Сублімація'] = 'sublimation';
+SLABELS_REV['Розкрій']    = 'rozkroi';
+SLABELS_REV['Цех']        = 'shveika';
+SLABELS_REV['Готово']     = 'done';
+SLABELS_REV['Закрито']    = 'closed';
+
+function normalizeStatus(s) {
+  return SLABELS_REV[s] || SLABELS_REV[String(s).trim()] || 'new';
+}
+
+const STATUS_ORDER = ['new','accepted','sublimation','rozkroi','shveika','done','closed'];
+
+const sBadge = (s) => {
+  if (s === 'overdue') return `<span class="sbadge sb-overdue">🔴 Протерм.</span>`;
+  return `<span class="sbadge ${SCLASS[s] || 'sb-new'}">${SLABELS[s] || s}</span>`;
+};
+
+const DIR_LABELS = {fabric_tier:'🟢 Тканина',branding_tier:'🟠 Брендування',fabric_sewing:'🟢 Тканина',branding_sewing:'🟠 Брендування'};
+const DIR_TAGS   = {fabric_tier:'dtag-fabric',branding_tier:'dtag-branding',fabric_sewing:'dtag-fabric',branding_sewing:'dtag-branding'};
+
+// ════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════
+const todayStr  = () => new Date().toISOString().slice(0,10);
+const fmtD     = d => { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'}); };
+const fmtDFull = d => { if(!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'}); };
+const isOver   = o => !['done','closed'].includes(o.status) && o.deadline && o.deadline < todayStr();
+
+function openUrl(inputId) {
+  const url = document.getElementById(inputId)?.value?.trim();
+  if (url) window.open(url, '_blank');
+}
+
+// ════════════════════════════════════════════════
+//  НАВІГАЦІЯ
+// ════════════════════════════════════════════════
+function goTab(tab, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  btn.classList.add('active');
+  if(tab==='orders'){renderStats();renderOrders();renderCalendar();}
+  if(tab==='archive') renderArchive();
+  if(tab==='vt')      setVtType(currentVtType);
+  if(tab==='directory') setDirType(currentDirType);
+}
+
+// Clock
+function clock(){
+  document.getElementById('hdr-clock').textContent =
+    new Date().toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'}) +
+    ' · ' + new Date().toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+}
+clock(); setInterval(clock, 30000);
+
+// ════════════════════════════════════════════════
+//  STATS
+// ════════════════════════════════════════════════
+function renderStats() {
+  const active = DB.orders.filter(o => o.status !== 'closed');
+  const tier   = active.filter(o => o.tier || o.teams);
+  const newCnt = active.filter(o => o.status === 'new').length;
+
+  const counts = [
+    { lbl:'Всього',   cls:'c-all',  fn: l => l.length },
+    { lbl:'НОВІ',     cls:'c-new'+(newCnt>0?'-alert':''), fn: l => l.filter(o=>o.status==='new').length, badge: newCnt > 0 },
+    { lbl:'В роботі', cls:'c-work', fn: l => l.filter(o=>['accepted','sublimation','rozkroi','shveika'].includes(o.status)).length },
+    { lbl:'Готово',   cls:'c-done', fn: l => l.filter(o=>o.status==='done').length },
+    { lbl:'Протерм.', cls:'c-over', fn: l => l.filter(o=>isOver(o)).length },
+  ];
+
+  document.getElementById('stats-bar').innerHTML = counts.map(c => `
+    <div class="stat">
+      <div class="stat-badge-row">${c.badge ? '<span class="stat-new-badge">НОВІ!</span>' : '<span class="stat-badge-ph"></span>'}</div>
+      <div class="stat-val ${c.cls}">${c.fn(active)}<span class="tier-cnt">(${c.fn(tier)})</span></div>
+      <div class="stat-lbl">${c.lbl}</div>
+    </div>
+    <div class="stat-div"></div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════
+//  FILTER
+// ════════════════════════════════════════════════
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.fbtn.status-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderOrders();
+}
+function setTypeFilter(f, btn) {
+  currentTypeFilter = f;
+  document.querySelectorAll('.fbtn.type-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderOrders();
+}
+
+// ════════════════════════════════════════════════
+//  SORTING
+// ════════════════════════════════════════════════
+function sortByCol(col,th){
+  if(sortState.col===col){if(sortState.dir==='asc')sortState.dir='desc';else{sortState.col=null;sortState.dir='asc';}}
+  else{sortState.col=col;sortState.dir='asc';}
+  document.querySelectorAll('.orders-table th.sortable').forEach(t=>t.classList.remove('sort-asc','sort-desc'));
+  if(sortState.col&&th)th.classList.add(sortState.dir==='asc'?'sort-asc':'sort-desc');
+  renderOrders();
+}
+
+function applySort(list){
+  if(!sortState.col)return list.sort((a,b)=>{if(a.status==='new'&&b.status!=='new')return-1;if(a.status!=='new'&&b.status==='new')return 1;if(isOver(a)&&!isOver(b))return-1;if(!isOver(a)&&isOver(b))return 1;if(a.status==='done'&&b.status!=='done')return 1;if(a.status!=='done'&&b.status==='done')return-1;return b.no-a.no;});
+  const dir=sortState.dir==='asc'?1:-1;
+  return list.sort((a,b)=>{if(sortState.col==='no')return(a.no-b.no)*dir;if(sortState.col==='status')return(STATUS_ORDER.indexOf(a.status)-STATUS_ORDER.indexOf(b.status))*dir;return(a[sortState.col]||'').localeCompare(b[sortState.col]||'')*dir;});
+}
+
+
+// ════════════════════════════════════════════════
+//  BATCH SELECTION
+// ════════════════════════════════════════════════
+function toggleSelectAll(checked) {
+  const table = document.getElementById('orders-table');
+  table.querySelectorAll('tbody.order-card').forEach(tbody => {
+    const id = parseInt(tbody.id.replace('oc',''));
+    const cb = tbody.querySelector('.order-cb');
+    if (checked) { selectedIds.add(id); if(cb) cb.checked = true; tbody.classList.add('is-selected'); }
+    else { selectedIds.delete(id); if(cb) cb.checked = false; tbody.classList.remove('is-selected'); }
+  });
+  updateBatchPanel();
+}
+
+function toggleSelect(id, checked) {
+  if (checked) selectedIds.add(id);
+  else         selectedIds.delete(id);
+  document.getElementById('oc'+id)?.classList.toggle('is-selected', checked);
+  document.getElementById('cb-all').checked = false;
+  updateBatchPanel();
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  document.querySelectorAll('.order-cb').forEach(cb => cb.checked = false);
+  document.querySelectorAll('.order-card').forEach(el => el.classList.remove('is-selected'));
+  updateBatchPanel();
+}
+
+function updateBatchPanel() {
+  const panel = document.getElementById('batch-panel');
+  const count = selectedIds.size;
+  document.getElementById('batch-count').textContent = count;
+  panel.classList.toggle('show', count > 0);
+}
+
+function openBatchStatus() {
+  const sel = document.getElementById('batch-status-sel');
+  // populate options
+  sel.innerHTML = '<option value="">— обери статус —</option>' +
+    Object.entries(SLABELS).filter(([k]) => k !== 'closed')
+      .map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
+  sel.style.display = 'inline-block';
+  sel.style.position = 'fixed';
+  sel.style.bottom = '70px';
+  sel.style.left = '50%';
+  sel.style.transform = 'translateX(-50%)';
+  sel.style.zIndex = '8000';
+  sel.focus();
+  sel.onblur = () => { sel.style.display = 'none'; };
+}
+
+async function batchChangeStatus(val) {
+  if (!val) return;
+  document.getElementById('batch-status-sel').style.display = 'none';
+  const nos = DB.orders.filter(o => selectedIds.has(o.id)).map(o => o.no);
+  // Update locally
+  selectedIds.forEach(id => {
+    const o = DB.orders.find(x => x.id === id);
+    if (o) o.status = val;
+  });
+  // Sync to sheets
+  await apiPost({ action: 'batchUpdateStatus', nos, status: SLABELS[val] || val });
+  showToast(`✓ Статус змінено на «${SLABELS[val]}» для ${nos.length} замовлень`);
+  clearSelection();
+  renderStats(); renderOrders(); renderCalendar();
+}
+
+function batchPrint() {
+  // TODO: window.print() for selected orders
+  showToast('🖨️ Друк вибраних замовлень — незабаром');
+}
+
+// ════════════════════════════════════════════════
+//  ORDERS LIST
+// ════════════════════════════════════════════════
+function renderOrders() {
+  const table = document.getElementById('orders-table');
+  table.querySelectorAll('tbody').forEach(b => b.remove());
+
+  let list = DB.orders.filter(o => o.status !== 'closed');
+
+  // Type filter
+  if (currentTypeFilter === 'tier')   list = list.filter(o => o.tier && !o.teams);
+  if (currentTypeFilter === 'teams')  list = list.filter(o => o.teams);
+  if (currentTypeFilter === 'sewing') list = list.filter(o => !o.tier && !o.teams);
+
+  if      (currentFilter === 'overdue')    list = list.filter(o => isOver(o));
+  else if (currentFilter === 'sublimation') list = list.filter(o => o.status === 'sublimation');
+  else if (currentFilter === 'closed')      list = DB.orders.filter(o => o.status === 'closed');
+  else if (currentFilter !== 'all')         list = list.filter(o => o.status === currentFilter);
+
+  list = applySort(list);
+  document.getElementById('orders-count').textContent = list.length + ' замовлень';
+
+  if (!list.length) {
+    table.insertAdjacentHTML('beforeend',
+      '<tbody><tr><td colspan="9" class="empty-state">Немає замовлень за цим фільтром</td></tr></tbody>');
+    return;
+  }
+  list.forEach(o => table.insertAdjacentHTML('beforeend', buildOrderRow(o)));
+}
+
+function buildOrderRow(o){
+  const over=isOver(o),s=o.status,dispStatus=over?'overdue':s;
+  const tierTag=o.tier?'<span class="tag-tier">TIER</span>':o.teams?'<span class="tag-teams">КОМАНДИ</span>':'';
+  const dlWarn=o.workEnd&&o.deadline&&o.deadline<o.workEnd;
+  const conflicts=getConflicts(o);
+  const warnIcon=(dlWarn||conflicts.length)?'<span class="conflict-hdr-icon">⚠️</span>':'';
+  let rowClass=`order-card s-${s}`;if(over)rowClass+=' is-overdue';if(o.tier)rowClass+=' is-tier';if(selectedIds.has(o.id))rowClass+=' is-selected';
+  const statusOpts=Object.keys(SLABELS).map(sv=>`<option value="${sv}"${o.status===sv?' selected':''}>${SLABELS[sv]}</option>`).join('');
+  const conflictHtml=conflicts.length?`<div class="conflict-msg">⚠️ Перетин дат з: ${conflicts.map(c=>`<b>${String(c.no).padStart(3,'0')} ${c.name}</b>`).join(', ')}</div>`:'';
+  const dlWarnHtml=dlWarn?'<div class="conflict-msg">⚠️ Дедлайн раніше за кінець виробництва</div>':'';
+  const mt=(conflictHtml||dlWarnHtml)?'10px':'0';
+  return `
+<tbody class="${rowClass}" id="oc${o.id}">
+<tr class="order-head">
+  <td class="col-check" style="width:32px;padding:9px 6px 9px 14px;text-align:center" onclick="event.stopPropagation()"><input type="checkbox" class="order-cb"${selectedIds.has(o.id)?' checked':''} onchange="toggleSelect(${o.id},this.checked)"></td>
+  <td onclick="toggleOrder(${o.id})"><span class="order-no">${String(o.no).padStart(3,'0')}</span></td>
+  <td class="nodim" onclick="toggleOrder(${o.id})">${o.name} ${tierTag}</td>
+  <td class="dt-left" onclick="toggleOrder(${o.id})"><div class="date-val">${fmtD(o.created)}</div></td>
+  <td class="dt-right" onclick="toggleOrder(${o.id})"><div class="date-val${(over||dlWarn)?' warn':''}"><span class="dt-arrow">→</span>${fmtD(o.deadline)}${dlWarn?'⚠️':''}</div></td>
+  <td class="dt-left" onclick="toggleOrder(${o.id})"><div class="date-val${conflicts.length?' conflict-date':''}">${o.workStart?fmtD(o.workStart):'—'}</div></td>
+  <td class="dt-right" onclick="toggleOrder(${o.id})"><div class="date-val${conflicts.length?' conflict-date':''}"><span class="dt-arrow">→</span>${o.workEnd?fmtD(o.workEnd):'—'}${warnIcon}</div></td>
+  <td class="nodim" onclick="toggleOrder(${o.id})">${sBadge(dispStatus)}</td>
+  <td onclick="toggleOrder(${o.id})"><div class="chevron">▾</div></td>
+</tr>
+<tr class="order-detail"><td colspan="9"><div class="detail-cell">
+  ${conflictHtml}${dlWarnHtml}
+  <div style="display:grid;grid-template-columns:100px 100px 1fr 1fr 160px;gap:10px;align-items:end;margin-top:${mt}">
+    <div class="detail-field"><div class="lbl">Створено</div><div style="font-size:12px">${fmtDFull(o.created)}</div></div>
+    <div class="detail-field"><div class="lbl">Дедлайн</div><div style="font-size:12px${dlWarn?';color:var(--red)':''}">${fmtDFull(o.deadline)}</div></div>
+    <div class="detail-field"><div class="lbl">Початок виробництва</div><input type="date" value="${o.workStart||''}" onchange="updWorkDate(${o.id},'workStart',this.value)"></div>
+    <div class="detail-field"><div class="lbl">Кінець виробництва</div><input type="date" value="${o.workEnd||''}" onchange="updWorkDate(${o.id},'workEnd',this.value)"></div>
+    <div class="detail-field"><div class="lbl">Статус</div><select class="status-sel" onchange="updStatus(${o.id},this.value)">${statusOpts}</select></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+    <div class="detail-field"><div class="lbl">Референс (URL)</div>
+      <div class="url-field-wrap"><input type="url" id="ref-${o.id}" value="${o.referenceUrl||''}" placeholder="https://..." onchange="updOrder(${o.id},'referenceUrl',this.value)"><button class="url-open-btn" onclick="openUrlById('ref-${o.id}')">🔗</button></div>
+      ${o.referenceUrl?`<a href="${o.referenceUrl}" target="_blank" class="ref-link-btn">📎 Відкрити референс</a>`:''}
+    </div>
+    <div class="detail-field"><div class="lbl">Сублімація (URL)</div>
+      <div class="url-field-wrap"><input type="url" id="sub-${o.id}" value="${o.sublimationUrl||''}" placeholder="https://..." onchange="updOrder(${o.id},'sublimationUrl',this.value)"><button class="url-open-btn" onclick="openUrlById('sub-${o.id}')">🔗</button></div>
+      ${o.sublimationUrl?`<a href="${o.sublimationUrl}" target="_blank" class="ref-link-btn ref-sub">🎨 Відкрити сублімацію</a>`:''}
+    </div>
+  </div>
+  <div class="comment-wrap" style="margin-top:10px">
+    <div class="lbl" style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">Коментар</div>
+    <textarea id="cmt-${o.id}" placeholder="Коментар до замовлення...">${o.comment||''}</textarea>
+    <button class="comment-save-btn" onclick="saveComment(${o.id})">Зберегти коментар</button>
+  </div>
+  <div class="prod-detail-list" style="margin-top:12px"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">Вироби</div>${o.products.map(p=>buildProdDetail(p)).join('')}</div>
+</div></td></tr>
+</tbody>`;
+}
+
+function buildProdDetail(p, sexClass) {
+  if (!sexClass) sexClass = (sex) => {
+    if (!sex) return '';
+    const s2 = sex.toLowerCase();
+    if (s2.includes('чол')) return 'sex-male';
+    if (s2.includes('жін')) return 'sex-female';
+    if (s2.includes('дит')) return 'sex-child';
+    return 'sex-uni';
+  };
+  const vt = DB.vtProducts.find(x => x.id === p.vtId);
+  const v  = vt ? vt.variants[p.variantIdx] : null;
+  const sizes = p.sizes.map(s => {
+    const done = s.done || 0;
+    const frac = `${done}/${s.qty}`;
+    const cls  = done >= s.qty ? 'done-fraction full' : done > 0 ? 'done-fraction partial' : 'done-fraction';
+    return `<span class="schip ${sexClass(s.sex)}">
+      <span class="sz">${s.sz}</span><span class="sq"> ${s.sex}</span>
+      <span class="${cls}" style="margin-left:4px">${frac}</span>
+    </span>`;
+  }).join('');
+  const meta = v ? `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:var(--text-dim);font-family:var(--mono)">
+    <span>Тканина: <b style="color:var(--text-muted)">${v.fabric||'—'}</b></span>
+    <span>Арт: <b style="color:var(--text-muted)">${v.fabricArt||'—'}</b></span>
+    <span>Колір: <b style="color:var(--text-muted)">${v.color||'—'}</b></span>
+    ${v.brandCode&&v.brandCode!=='-'?`<span>Брендування: <b style="color:var(--text-muted)">${v.brandCode} · ${v.brandMat}</b></span>`:''}
+    ${v.barcode?`<span>Штрихкод: <b style="color:var(--text-muted)">${v.barcode}</b></span>`:''}
+  </div>` : '';
+  return `<div class="pdl-item">
+    <div class="pdl-head"><div class="pdl-name">${p.name}</div><span class="pdl-code">${p.code}</span></div>
+    <div class="size-chips">${sizes}</div>${meta}
+  </div>`;
+}
+
+function toggleOrder(id) {
+  document.getElementById('oc'+id)?.classList.toggle('open');
+}
+
+function getConflicts(o) {
+  if (!o.workStart || !o.workEnd) return [];
+  return DB.orders.filter(x =>
+    x.id !== o.id && x.workStart && x.workEnd && !['done','closed'].includes(x.status) &&
+    x.workStart <= o.workEnd && x.workEnd >= o.workStart
+  );
+}
+
+// ════════════════════════════════════════════════
+//  UPDATE HANDLERS
+// ════════════════════════════════════════════════
+function updWorkDate(id, field, val) {
+  const o = DB.orders.find(x => x.id === id);
+  if (!o) return;
+  const wasOpen = document.getElementById('oc'+id)?.classList.contains('open');
+  o[field] = val;
+  syncField(o.no, field, val);
+  renderStats(); renderOrders(); renderCalendar();
+  if (wasOpen) document.getElementById('oc'+id)?.classList.add('open');
+}
+
+function updOrder(id, field, val) {
+  const o = DB.orders.find(x => x.id === id);
+  if (!o) return;
+  const wasOpen = document.getElementById('oc'+id)?.classList.contains('open');
+  o[field] = val;
+  const apiField = field; // referenceUrl → col L, sublimationUrl → col M
+  syncField(o.no, apiField, val);
+  renderStats(); renderOrders(); renderCalendar();
+  if (wasOpen) document.getElementById('oc'+id)?.classList.add('open');
+}
+
+function saveComment(id) {
+  const o = DB.orders.find(x => x.id === id);
+  if (!o) return;
+  const val = document.getElementById('cmt-'+id)?.value || '';
+  o.comment = val;
+  syncField(o.no, 'comment', val);
+  showToast('✓ Коментар збережено');
+}
+
+function updStatus(id, val) {
+  const o = DB.orders.find(x => x.id === id);
+  if (!o) return;
+  o.status = val;
+  syncField(o.no, 'status', SLABELS[val] || val);
+  syncField(o.no, 'productsJson', JSON.stringify(o.products));
+  if (val === 'closed') syncClose(o.no);
+  renderStats(); renderOrders(); renderCalendar();
+  if (val === 'closed') renderArchive();
+}
+
+// ════════════════════════════════════════════════
+//  CALENDAR (без змін)
+// ════════════════════════════════════════════════
+function renderCalendar() {
+  const now = new Date();
+  document.getElementById('cal-wrap').innerHTML =
+    buildCalMonth(now.getFullYear(), now.getMonth()) +
+    buildCalMonth(now.getFullYear(), now.getMonth()+1);
+}
+
+function buildCalMonth(year, rawMonth) {
+  const d = new Date(year, rawMonth, 1);
+  const yr = d.getFullYear(), mo = d.getMonth();
+  const name = d.toLocaleDateString('uk-UA',{month:'long',year:'numeric'});
+  const firstDow = (new Date(yr,mo,1).getDay()+6)%7;
+  const daysInMo = new Date(yr,mo+1,0).getDate();
+  const td = todayStr();
+  const orders = DB.orders.filter(o => o.workStart && o.workEnd && o.status !== 'closed');
+  const allActive = DB.orders.filter(o => !['done','closed'].includes(o.status));
+  const dows = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+
+  let html = `<div class="cal-month">
+    <div class="cal-head"><div class="cal-name">${name}</div></div>
+    <div class="cal-grid">
+      <div class="cal-dow">${dows.map(d=>`<span>${d}</span>`).join('')}</div>
+      <div class="cal-days">`;
+
+  for(let i=0;i<firstDow;i++) html += `<div class="cday empty"></div>`;
+  for(let day=1;day<=daysInMo;day++){
+    const ds = `${yr}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday = ds===td;
+    const matched = orders.filter(o=>ds>=o.workStart&&ds<=o.workEnd);
+    const hasTier = matched.some(o=>o.tier);
+    const hasSh   = matched.some(o=>!o.tier);
+    const deadlines = allActive.filter(o=>o.deadline===ds);
+    const hasConflict = matched.length > 1;
+    let cls = 'cday';
+    if(isToday) cls+=' today';
+    if(matched.length) cls+=' has-ev';
+    if(hasTier&&hasSh) cls+=' ev-both';
+    else if(hasTier) cls+=' ev-tier';
+    else if(hasSh) cls+=' ev-sh';
+    if(hasConflict) cls+=' conflict-day';
+    if(deadlines.length) cls+=' has-deadline has-ev';
+    const allDayIds = [...new Set([...matched.map(o=>o.id),...deadlines.map(o=>o.id)])];
+    const tip = [...matched.map(o=>`📦 ${String(o.no).padStart(3,'0')} ${o.name}`),...deadlines.filter(o=>!matched.find(m=>m.id===o.id)).map(o=>`⏰ Дедлайн: ${String(o.no).padStart(3,'0')} ${o.name}`)].join('\n');
+    const click = allDayIds.length ? `onclick="calClick([${allDayIds.join(',')}])"` : '';
+    html += `<div class="${cls}" ${click} ${tip?`title="${tip}"`:''}>${day}</div>`;
+  }
+  html += `</div></div>
+    <div class="cal-legend">
+      <div class="cal-leg-item"><div class="cal-leg-dot leg-tier"></div>TIER</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot leg-sh"></div>Швейка</div>
+      <div class="cal-leg-item"><div class="cal-leg-dot" style="background:var(--red)"></div>Дедлайн</div>
+    </div>
+  </div>`;
+  return html;
+}
+
+function calClick(ids) {
+  document.querySelector('.tab.active').classList.remove('active');
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-orders').classList.add('active');
+  renderStats(); renderOrders(); renderCalendar();
+  setTimeout(()=>{
+    ids.forEach(id=>{
+      const tr = document.getElementById('oc'+id);
+      if(tr){tr.classList.add('open');tr.scrollIntoView({behavior:'smooth',block:'center'});}
+    });
+  },100);
+}
+
+// ════════════════════════════════════════════════
+//  ARCHIVE (без змін)
+// ════════════════════════════════════════════════
+function renderArchive() {
+  const closed = DB.orders.filter(o => o.status === 'closed');
+  const el = document.getElementById('archive-list');
+  if (!closed.length) { el.innerHTML='<div class="empty-state">Архів порожній</div>'; return; }
+  const groups = {};
+  closed.forEach(o => {
+    const d = new Date((o.deadline||o.created)+'T00:00:00');
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const lbl = d.toLocaleDateString('uk-UA',{month:'long',year:'numeric'});
+    if(!groups[key]) groups[key]={lbl, orders:[]};
+    groups[key].orders.push(o);
+  });
+  el.innerHTML = Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([k,g])=>`
+    <div class="arch-month" id="am${k}">
+      <div class="arch-month-head" onclick="this.closest('.arch-month').classList.toggle('open')">
+        <div class="arch-month-name">${g.lbl.charAt(0).toUpperCase()+g.lbl.slice(1)}</div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="arch-month-cnt">${g.orders.length} замовлень</div>
+          <div class="arch-chev">▾</div>
+        </div>
+      </div>
+      <div class="arch-month-body">
+        ${g.orders.map(o=>`
+          <div class="arch-order" id="ao${o.id}">
+            <div class="arch-order-head" onclick="this.closest('.arch-order').classList.toggle('open')">
+              <div class="arch-order-no">${String(o.no).padStart(3,'0')}</div>
+              <div class="arch-order-name">${o.name}${o.tier?` <span class="tag-tier">TIER</span>`:o.teams?` <span class="tag-teams">КОМАНДИ</span>`:''}</div>
+              <div class="arch-order-dl">${fmtDFull(o.deadline)}</div>
+              ${sBadge('closed')}
+              <div class="arch-order-chev">▾</div>
+            </div>
+            <div class="arch-order-body">
+              ${o.products.map(p=>buildProdDetail(p)).join('')}
+              <div style="margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim)">
+                Створено: ${fmtDFull(o.created)} · Дедлайн: ${fmtDFull(o.deadline)} · Виробництво: ${fmtDFull(o.workStart)} → ${fmtDFull(o.workEnd)}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════
+//  CREATE FORM
+// ════════════════════════════════════════════════
+let formOpen = false;
+function toggleCreate() {
+  formOpen = !formOpen;
+  const hdr = document.getElementById('createHdr');
+  const body = document.getElementById('createBody');
+  hdr.classList.toggle('open', formOpen);
+  hdr.classList.toggle('closed', !formOpen);
+  body.classList.toggle('open', formOpen);
+  if (formOpen) {
+    document.getElementById('f-no').value = String(nextOrderNo).padStart(3,'0');
+    document.getElementById('f-date').value = fmtDFull(todayStr());
+    if (!document.getElementById('prod-container').children.length) addProdBlock();
+  }
+}
+
+function markField(id, err) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.closest('.fg')?.classList.toggle('field-error', err);
+}
+
+async function submitOrder() {
+  const name = document.getElementById('f-name').value.trim();
+  const deadline = document.getElementById('f-deadline').value;
+  markField('f-name', !name); markField('f-deadline', !deadline);
+  if (!name || !deadline) { document.getElementById('form-err').textContent='❗ Заповніть назву і дедлайн'; return; }
+  document.getElementById('form-err').textContent = '';
+
+  const products = collectProducts();
+  if (!products) return;
+
+  const order = {
+    id: Date.now(), no: nextOrderNo,
+    created: todayStr(), name, deadline,
+    tier: currentOrderType==='tier', teams: currentOrderType==='teams',
+    status: 'new', workStart: '', workEnd: '',
+    products,
+    comment: document.getElementById('f-comment').value.trim(),
+    referenceUrl:   document.getElementById('f-reference').value.trim(),
+    sublimationUrl: document.getElementById('f-sublimation-url').value.trim(),
+  };
+
+  DB.orders.unshift(order);
+  nextOrderNo++;
+  await saveOrderToSheets(order);
+  showToast(`✓ Замовлення №${String(order.no).padStart(3,'0')} створено`);
+  resetForm();
+  renderStats(); renderOrders(); renderCalendar();
+}
+
+function resetForm() {
+  formOpen = true; toggleCreate();
+  ['f-name','f-comment','f-reference','f-sublimation-url'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('f-deadline').value='';
+  document.getElementById('form-err').textContent='';
+  document.getElementById('prod-container').innerHTML='';
+  prodBlockCount=0;
+}
+
+// ════════════════════════════════════════════════
+//  PRODUCT BLOCKS (без змін від оригіналу)
+// ════════════════════════════════════════════════
+function readSizeMatrix(id){const matrix=document.getElementById(id+'-matrix');if(!matrix)return[];const sizes=[];matrix.querySelectorAll('input[type=number]').forEach(inp=>{const qty=parseInt(inp.value);if(qty>0)sizes.push({sex:inp.dataset.sex,sz:inp.dataset.sz,qty,done:0});});return sizes;}
+
+function addProdBlock(){
+  const id='pb'+(++prodBlockCount),container=document.getElementById('prod-container');
+  const filtered=DB.vtProducts.filter(p=>(p.type||'tier')===currentOrderType);
+  const names=[...new Set(filtered.map(p=>p.name))].sort();
+  const nameOpts=names.map(n=>`<option value="${n}">${n}</option>`).join('');
+  container.insertAdjacentHTML('beforeend',`<div class="prod-block" id="${id}"><div class="prod-block-head"><span class="prod-block-num">Виріб ${prodBlockCount}</span><button class="btn-rm" onclick="document.getElementById('${id}').remove()">✕</button></div><div class="form-row" style="grid-template-columns:1fr 1fr;align-items:end"><div class="fg"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><label class="lbl" style="margin:0">Назва виробу</label><button class="add-mat-btn" onclick="openModalNewProduct('${id}')" type="button">+ новий виріб</button></div><select id="${id}-name" onchange="onPbName('${id}')"><option value="">— Обрати виріб —</option>${nameOpts}</select></div><div class="fg"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><label class="lbl" style="margin:0">Варіант (колір / стать)</label><button class="add-mat-btn" onclick="openModalNewVariant('${id}')" type="button">+ новий варіант</button></div><select id="${id}-var"><option value="">—</option></select></div></div><div class="prod-section-lbl" style="border-top:none;padding-top:4px">Розміри та кількість</div>${buildSizeMatrix(id)}</div>`);
+}
+
+function onPbName(pbId) {
+  const name = document.getElementById(pbId+'-name')?.value;
+  const varSel = document.getElementById(pbId+'-var');
+  if (!varSel) return;
+  varSel.innerHTML = '<option value="">—</option>';
+  const products = DB.vtProducts.filter(p => p.name === name && (p.type||'tier') === currentOrderType);
+  products.forEach(p => {
+    p.variants.forEach((v,i) => {
+      const o = document.createElement('option');
+      o.value = `${p.id}:${i}`;
+      o.textContent = [v.sex,v.color,v.fabric].filter(Boolean).join(' · ') || `Варіант ${i+1}`;
+      varSel.appendChild(o);
+    });
+  });
+  if (varSel.options.length === 2) varSel.selectedIndex = 1;
+}
+
+function addSizeRow(pbId) {
+  const wrap = document.getElementById(pbId+'-sizes');
+  if (!wrap) return;
+  const ri = Date.now();
+  wrap.insertAdjacentHTML('beforeend', `
+    <div class="size-row" id="sr${ri}">
+      <select onchange="">
+        <option value="">— стать —</option>
+        <option>Чоловіча</option><option>Жіноча</option><option>Дитяча</option><option>Унісекс</option>
+      </select>
+      <select>
+        <option value="">— розмір —</option>
+        <option>XS</option><option>S</option><option>M</option><option>L</option>
+        <option>XL</option><option>XXL</option><option>3XL</option><option>Унісекс</option>
+      </select>
+      <input type="number" min="1" placeholder="К-сть">
+      <button class="btn-rm" onclick="document.getElementById('sr${ri}').remove()">✕</button>
+    </div>`);
+}
+
+function collectProducts() {
+  const blocks = document.getElementById('prod-container').querySelectorAll('.prod-block');
+  const products = [];
+  for (const block of blocks) {
+    const pbId = block.id;
+    const nameSel = document.getElementById(pbId+'-name');
+    const varSel  = document.getElementById(pbId+'-var');
+    if (!nameSel?.value) continue;
+    const [vtIdStr, viStr] = (varSel?.value||'0:0').split(':');
+    const vt = DB.vtProducts.find(p => String(p.id) === vtIdStr);
+    const sizes = [];
+    block.querySelectorAll('.size-row').forEach(row => {
+      const sels = row.querySelectorAll('select');
+      const inp  = row.querySelector('input[type=number]');
+      const sex  = sels[0]?.value;
+      const sz   = sels[1]?.value;
+      const qty  = parseInt(inp?.value) || 0;
+      if (sex && sz && qty > 0) sizes.push({sex, sz, qty, done:0});
+    });
+    if (sizes.length) {
+      products.push({
+        vtId: vt ? vt.id : 0,
+        name: nameSel.value,
+        code: vt?.code || '',
+        variantIdx: parseInt(viStr)||0,
+        sizes,
+      });
+    }
+  }
+  return products;
+}
+
+// ════════════════════════════════════════════════
+//  VT / DIR / MODAL — без змін
+// ════════════════════════════════════════════════
+function setOrderType(type) {
+  if(currentOrderType===type) return;
+  currentOrderType=type;
+  ['sewing','tier','teams'].forEach(t=>{
+    const btn=document.getElementById('otype-'+t);
+    if(btn) btn.className='otype-btn'+(type===t?' active-'+t:'');
+  });
+  const pc=document.getElementById('prod-container');
+  pc.innerHTML=''; prodBlockCount=0;
+  if(document.getElementById('createBody').classList.contains('open')) addProdBlock();
+}
+
+function setVtType(type) {
+  currentVtType=type;
+  const styles={tier:'st-tier',sewing:'st-sewing',teams:'st-teams'};
+  ['tier','sewing','teams'].forEach(t=>{
+    const b=document.getElementById('vstab-'+t);
+    if(b) b.className='vt-stab'+(t===type?' '+styles[t]:'');
+  });
+  renderVt();
+}
+
+function setDirType(type) {
+  currentDirType=type;
+  ['tier','sewing'].forEach(t=>{
+    const b=document.getElementById('dstab-'+t);
+    if(!b) return;
+    b.className='dir-stab'+(t===type?' dst-'+t:'');
+  });
+  const sel=document.getElementById('dir-type');
+  if(sel){ [...sel.options].forEach(o=>o.style.display=o.value.endsWith('_'+type)?'':'none'); if(!sel.value.endsWith('_'+type)) sel.value='fabric_'+type; }
+  renderDir();
+}
+
+function renderVt() {
+  const el=document.getElementById('vt-list');
+  const items=DB.vtProducts.filter(p=>(p.type||'tier')===currentVtType);
+  document.getElementById('vt-count').textContent=items.length+' виробів';
+  if(!items.length){el.innerHTML='<div class="empty-state">Немає виробів</div>';return;}
+  el.innerHTML=items.map(p=>`
+    <div class="vt-item" id="vti${p.id}">
+      <div class="vt-head" onclick="document.getElementById('vti${p.id}').classList.toggle('open')">
+        <div class="vt-name">${p.name}</div><div class="vt-code">${p.code}</div>
+        <div class="vt-cnt">${p.variants.length} вар.</div>
+        <div class="vt-head-chev">▾</div>
+      </div>
+      <div class="vt-body">
+        ${p.variants.map((v,i)=>`
+          <div class="variant-row">
+            <div class="vr-field"><div class="vr-lbl">Стать</div><div class="vr-val">${v.sex||'—'}</div></div>
+            <div class="vr-field"><div class="vr-lbl">Тканина</div><div class="vr-val">${v.fabric||'—'}</div></div>
+            <div class="vr-field"><div class="vr-lbl">Колір</div><div class="vr-val">${v.color||'—'}</div></div>
+            <div class="vr-field"><div class="vr-lbl">Брендування</div><div class="vr-val">${v.brandCode||'—'}</div></div>
+          </div>`).join('')}
+        <button class="btn-add-row" style="margin-top:4px" onclick="openModalNewVariant2(${p.id})">+ Новий варіант</button>
+      </div>
+    </div>`).join('');
+}
+
+function openModalNewVariant2(pid) {
+  const p=DB.vtProducts.find(x=>x.id===pid); if(!p) return;
+  _modalTargetVariantPbId=null;
+  const avid='mnv';
+  document.getElementById('mnv-title').textContent='➕ Новий варіант — '+p.name;
+  ['mnv-barcode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['mnv-sex','mnv-fabric','mnv-brand-code'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  const mc=document.getElementById('mnv-color'); if(mc){mc.innerHTML='<option value="">—</option>';mc.className='';}
+  ['mnv-art','mnv-brand-mat'].forEach(id=>{const e=document.getElementById(id);if(e){e.value='';e.disabled=true;}});
+  document.getElementById('mnv-err').textContent='';
+  const fabSel=document.getElementById('mnv-fabric'); const bSel=document.getElementById('mnv-brand-code');
+  if(fabSel) fabSel.options.length=1; if(bSel) bSel.options.length=1;
+  const _saved=currentOrderType; currentOrderType=currentVtType;
+  vtPopulateFormSelects('mnv'); currentOrderType=_saved;
+  openModal('modal-new-variant');
+  document.getElementById('modal-new-variant').dataset.targetPid=pid;
+}
+
+function renderDir() {
+  const el=document.getElementById('dir-sections');
+  const suffix='_'+currentDirType;
+  const sections=Object.entries(DB.directory).filter(([type])=>type.endsWith(suffix));
+  let html='';
+  sections.forEach(([type,items])=>{
+    const groups={};
+    items.forEach(i=>{if(!groups[i.name])groups[i.name]=[];groups[i.name].push(i);});
+    html+=`<div class="dir-section"><div class="dir-title">${DIR_LABELS[type]}</div><div class="dir-wrap" style="border:none">`;
+    if(!items.length) html+=`<div style="padding:10px 14px;color:var(--text-dim);font-family:var(--mono);font-size:11px">Немає записів</div>`;
+    Object.entries(groups).forEach(([name,variants],gi)=>{
+      const uid='dg-'+type+'-'+gi;
+      html+=`<div class="dir-group" id="${uid}">
+        <div class="dir-group-head" onclick="document.getElementById('${uid}').classList.toggle('open')">
+          <div class="dir-group-name">${name}</div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="dir-group-cnt">${variants.length} вар.</span><span class="dir-group-chev">▾</span></div>
+        </div>
+        <div class="dir-group-body">
+          <div style="display:grid;grid-template-columns:1fr 120px 1fr;padding:5px 14px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border)">
+            <span>Колір</span><span>Код</span><span>Коментар</span>
+          </div>
+          ${variants.map(v=>`<div class="dir-variant-row"><span class="dvr-color">${v.color||'—'}</span><span class="dvr-code">${v.code||'—'}</span><span class="dvr-comment">${v.comment||''}</span></div>`).join('')}
+        </div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  el.innerHTML=html||'<div class="empty-state">Немає матеріалів</div>';
+}
+
+function addVtItem() {
+  const name=document.getElementById('vt-name').value.trim();
+  const code=document.getElementById('vt-code').value.trim();
+  const err=document.getElementById('vt-err');
+  markField('vt-name',!name); markField('vt-code',!code);
+  if(!name||!code){err.textContent="❗ Назва і код обов'язкові";return;}
+  err.textContent='';
+  const newProduct={
+    id:Date.now(), name, code, type:currentVtType,
+    variants:[{
+      sex:document.getElementById('vt-sex').value,
+      fabric:document.getElementById('vt-fabric').value,
+      fabricArt:document.getElementById('vt-art').value,
+      color:document.getElementById('vt-color').value,
+      barcode:document.getElementById('vt-barcode').value,
+      brandCode:document.getElementById('vt-brand-code').value||'-',
+      brandMat:document.getElementById('vt-brand-mat').value||'-',
+    }]
+  };
+  DB.vtProducts.push(newProduct);
+  apiPost({action:'addVtProduct',item:newProduct});
+  ['vt-name','vt-code','vt-barcode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['vt-sex','vt-fabric','vt-brand-code'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  const mc=document.getElementById('vt-color'); if(mc){mc.innerHTML='<option value="">—</option>';mc.className='';}
+  ['vt-art','vt-brand-mat'].forEach(id=>{const e=document.getElementById(id);if(e){e.value='';e.disabled=true;}});
+  renderVt(); showToast('✓ Виріб додано');
+}
+
+function addDirItem() {
+  const type=document.getElementById('dir-type').value;
+  const name=document.getElementById('dir-name').value.trim();
+  const code=document.getElementById('dir-code').value.trim();
+  const err=document.getElementById('dir-err');
+  markField('dir-name',!name); markField('dir-code',!code);
+  if(!name||!code){err.textContent='❗ Назва і код';return;}
+  err.textContent='';
+  const newItem={id:Date.now(),name,code,color:document.getElementById('dir-color').value,mat:document.getElementById('dir-mat').value,comment:document.getElementById('dir-comment').value.trim()};
+  if(!DB.directory[type]) DB.directory[type]=[];
+  DB.directory[type].push(newItem);
+  apiPost({action:'addDirItem',type,item:newItem});
+  ['dir-name','dir-code','dir-color','dir-mat','dir-comment'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  renderDir(); showToast('✓ Матеріал додано');
+}
+
+function toggleVtForm() {
+  const hdr=document.getElementById('vtFormHdr'); const body=document.getElementById('vtFormBody');
+  const open=body.classList.toggle('open');
+  hdr.classList.toggle('open',open); hdr.classList.toggle('closed',!open);
+  if(open) vtPopulateFormSelects('vt');
+}
+
+function toggleDirForm() {
+  const hdr=document.getElementById('dirFormHdr'); const body=document.getElementById('dirFormBody');
+  const open=body.classList.toggle('open');
+  hdr.classList.toggle('open',open); hdr.classList.toggle('closed',!open);
+}
+
+function vtPopulateFormSelects(prefix) {
+  const fabSel=document.getElementById(prefix+'-fabric');
+  const bSel=document.getElementById(prefix+'-brand-code');
+  if(fabSel&&fabSel.options.length<=1){
+    const _fabType=prefix==='vt'||prefix.startsWith('vav')?currentVtType:currentOrderType;
+    const dirKey=_fabType==='sewing'?'fabric_sewing':'fabric_tier';
+    const seen=new Set();
+    (DB.directory[dirKey]||[]).forEach(f=>{
+      if(seen.has(f.name)) return; seen.add(f.name);
+      const o=document.createElement('option'); o.value=f.name; o.textContent=f.name;
+      fabSel.appendChild(o);
+    });
+  }
+  if(bSel&&bSel.options.length<=1){
+    const _brandType=prefix==='vt'||prefix.startsWith('vav')?currentVtType:currentOrderType;
+    const brandKey=_brandType==='sewing'?'branding_sewing':'branding_tier';
+    (DB.directory[brandKey]||[]).forEach(b=>{
+      const o=document.createElement('option'); o.value=b.code||b.name; o.dataset.mat=b.mat||b.name;
+      o.textContent=(b.code&&b.code!=='-'?b.code+' — ':'')+b.name;
+      bSel.appendChild(o);
+    });
+  }
+}
+
+function vtFabricChange(prefix) {
+  const sel=document.getElementById(prefix+'-fabric');
+  const artEl=document.getElementById(prefix+'-art');
+  const colSel=document.getElementById(prefix+'-color');
+  if(artEl){artEl.value='';artEl.disabled=true;}
+  if(colSel){colSel.innerHTML='<option value="">— колір —</option>';colSel.className='';}
+  if(!sel?.value) return;
+  const _fabType2=prefix==='vt'||prefix.startsWith('vav')?currentVtType:prefix==='mnp'?_mnpType:currentOrderType;
+  const dirKey2=_fabType2==='sewing'?'fabric_sewing':'fabric_tier';
+  const entries=(DB.directory[dirKey2]||[]).filter(f=>f.name===sel.value);
+  const colors=entries.map(f=>f.color).filter(Boolean);
+  if(colors.length){
+    colors.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;colSel?.appendChild(o);});
+    if(colors.length===1){if(colSel)colSel.value=colors[0];vtColorChange(prefix);}
+  }
+}
+
+function vtColorChange(prefix) {
+  const fabSel=document.getElementById(prefix+'-fabric');
+  const colSel=document.getElementById(prefix+'-color');
+  const artEl=document.getElementById(prefix+'-art');
+  if(!fabSel?.value||!colSel?.value) return;
+  const _fabType3=prefix==='vt'||prefix.startsWith('vav')?currentVtType:prefix==='mnp'?_mnpType:currentOrderType;
+  const dirKey3=_fabType3==='sewing'?'fabric_sewing':'fabric_tier';
+  const entry=(DB.directory[dirKey3]||[]).find(f=>f.name===fabSel.value&&f.color===colSel.value);
+  if(entry&&artEl){artEl.value=entry.code||'';artEl.disabled=false;}
+}
+
+function vtBrandChange(prefix) {
+  const bSel=document.getElementById(prefix+'-brand-code');
+  const bMatEl=document.getElementById(prefix+'-brand-mat');
+  if(!bSel) return;
+  const opt=bSel.options[bSel.selectedIndex];
+  if(bMatEl){bMatEl.value=opt?.dataset?.mat||'';bMatEl.disabled=!opt?.dataset?.mat;}
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+let _modalTargetPbId=null, _modalTargetVariantPbId=null, _mnpType='tier';
+
+function setMnpType(type) {
+  _mnpType=type;
+  const styles={tier:'active-tier',sewing:'active-sewing',teams:'active-teams'};
+  ['sewing','tier','teams'].forEach(t=>{const b=document.getElementById('mnp-type-'+t);if(b)b.className='otype-btn'+(t===type?' '+styles[t]:'');});
+  const fabSel=document.getElementById('mnp-fabric'); const bSel=document.getElementById('mnp-brand-code');
+  if(fabSel)fabSel.options.length=1; if(bSel)bSel.options.length=1;
+  const _saved=currentOrderType; currentOrderType=type;
+  vtPopulateFormSelects('mnp'); currentOrderType=_saved;
+  if(fabSel)fabSel.selectedIndex=0;
+  const colSel=document.getElementById('mnp-color'); if(colSel){colSel.innerHTML='<option value="">—</option>';colSel.className='';}
+  const artEl=document.getElementById('mnp-art'); if(artEl){artEl.value='';artEl.disabled=true;}
+}
+
+function openModalNewProduct(pbId) {
+  _modalTargetPbId=pbId; _mnpType=currentOrderType; setMnpType(currentOrderType);
+  ['mnp-name','mnp-code','mnp-barcode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['mnp-sex','mnp-fabric','mnp-brand-code'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  const mc=document.getElementById('mnp-color'); if(mc){mc.innerHTML='<option value="">—</option>';mc.className='';}
+  ['mnp-art','mnp-brand-mat'].forEach(id=>{const e=document.getElementById(id);if(e){e.value='';e.disabled=true;}});
+  document.getElementById('mnp-err').textContent='';
+  const fabSel=document.getElementById('mnp-fabric'); const bSel=document.getElementById('mnp-brand-code');
+  if(fabSel)fabSel.options.length=1; if(bSel)bSel.options.length=1;
+  vtPopulateFormSelects('mnp'); openModal('modal-new-product');
+}
+
+function openModalNewVariant(pbId) {
+  const nameSel=document.getElementById(pbId+'-name');
+  if(!nameSel?.value){alert('Спочатку оберіть виріб');return;}
+  _modalTargetVariantPbId=pbId;
+  document.getElementById('mnv-title').textContent='➕ Новий варіант — '+nameSel.value;
+  ['mnv-barcode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['mnv-sex','mnv-fabric','mnv-brand-code'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  const mc=document.getElementById('mnv-color'); if(mc){mc.innerHTML='<option value="">—</option>';mc.className='';}
+  ['mnv-art','mnv-brand-mat'].forEach(id=>{const e=document.getElementById(id);if(e){e.value='';e.disabled=true;}});
+  document.getElementById('mnv-err').textContent='';
+  const fabSel=document.getElementById('mnv-fabric'); const bSel=document.getElementById('mnv-brand-code');
+  if(fabSel)fabSel.options.length=1; if(bSel)bSel.options.length=1;
+  vtPopulateFormSelects('mnv'); openModal('modal-new-variant');
+}
+
+function submitModalVariant() {
+  const err=document.getElementById('mnv-err');
+  const newVar={
+    sex:document.getElementById('mnv-sex').value,
+    fabric:document.getElementById('mnv-fabric').value,
+    fabricArt:document.getElementById('mnv-art').value,
+    color:document.getElementById('mnv-color').value,
+    barcode:document.getElementById('mnv-barcode').value,
+    brandCode:document.getElementById('mnv-brand-code').value||'-',
+    brandMat:document.getElementById('mnv-brand-mat').value||'-',
+  };
+  // Визначаємо цільовий виріб
+  const pid=parseInt(document.getElementById('modal-new-variant').dataset.targetPid);
+  let p=null;
+  if(pid){ p=DB.vtProducts.find(x=>x.id===pid); }
+  else if(_modalTargetVariantPbId){
+    const nameSel=document.getElementById(_modalTargetVariantPbId+'-name');
+    if(nameSel) p=DB.vtProducts.find(x=>x.name===nameSel.value&&(x.type||'tier')===currentOrderType);
+  }
+  if(!p){err.textContent='❗ Виріб не знайдено';return;}
+  p.variants.push(newVar);
+  const vi=p.variants.length-1;
+  apiPost({action:'updateVtVariants',id:p.id,variantsJson:JSON.stringify(p.variants)});
+  closeModal('modal-new-variant');
+  if(_modalTargetVariantPbId){
+    const varSel=document.getElementById(_modalTargetVariantPbId+'-var');
+    if(varSel){const o=document.createElement('option');o.value=`${p.id}:${vi}`;o.textContent=[newVar.sex,newVar.color].filter(Boolean).join(' · ')||`Варіант ${vi+1}`;varSel.appendChild(o);varSel.value=`${p.id}:${vi}`;}
+  }
+  renderVt(); _modalTargetVariantPbId=null;
+  document.getElementById('modal-new-variant').dataset.targetPid='';
+}
+
+function submitModalProduct() {
+  const name=document.getElementById('mnp-name').value.trim();
+  const code=document.getElementById('mnp-code').value.trim();
+  const err=document.getElementById('mnp-err');
+  markField('mnp-name',!name); markField('mnp-code',!code);
+  if(!name||!code){err.textContent="❗ Назва і код обов'язкові";return;}
+  err.textContent='';
+  const newProduct={id:Date.now(),name,code,type:_mnpType,variants:[{sex:document.getElementById('mnp-sex').value,fabric:document.getElementById('mnp-fabric').value,fabricArt:document.getElementById('mnp-art').value,color:document.getElementById('mnp-color').value,barcode:document.getElementById('mnp-barcode').value,brandCode:document.getElementById('mnp-brand-code').value||'-',brandMat:document.getElementById('mnp-brand-mat').value||'-'}]};
+  DB.vtProducts.push(newProduct);
+  apiPost({action:'addVtProduct',item:newProduct});
+  closeModal('modal-new-product');
+  if(_mnpType!==currentOrderType) setOrderType(_mnpType);
+  if(_modalTargetPbId){
+    const nameSel=document.getElementById(_modalTargetPbId+'-name');
+    if(nameSel){const o=document.createElement('option');o.value=name;o.textContent=name;nameSel.appendChild(o);nameSel.value=name;onPbName(_modalTargetPbId);setTimeout(()=>{const vs=document.getElementById(_modalTargetPbId+'-var');if(vs&&vs.options.length>1)vs.selectedIndex=1;},50);}
+  }
+  _modalTargetPbId=null; renderVt();
+}
+
+function toggleInlineMat(formId){const f=document.getElementById(formId);if(f)f.classList.toggle('open');}
+
+function addInlineMat(prefix,matType) {
+  const _grpType=prefix==='vt'||prefix.startsWith('vav')?currentVtType:prefix==='mnp'?_mnpType:currentOrderType;
+  const dirGroup=_grpType==='sewing'?matType+'_sewing':matType+'_tier';
+  if(matType==='fabric'){
+    const nameEl=document.getElementById(prefix+'-new-fab-name');
+    const colorEl=document.getElementById(prefix+'-new-fab-color');
+    const codeEl=document.getElementById(prefix+'-new-fab-code');
+    const name=nameEl?.value.trim(); const color=colorEl?.value.trim(); const code=codeEl?.value.trim();
+    if(!name){if(nameEl)nameEl.style.borderColor='var(--red)';return;}
+    const newItem={id:Date.now(),name,color,code,mat:'',comment:''};
+    if(!DB.directory[dirGroup])DB.directory[dirGroup]=[];
+    DB.directory[dirGroup].push(newItem);
+    apiPost({action:'addDirItem',type:dirGroup,item:newItem});
+    if(nameEl){nameEl.value='';nameEl.style.borderColor='';}
+    if(colorEl)colorEl.value=''; if(codeEl)codeEl.value='';
+    toggleInlineMat(prefix+'-mat-form');
+    const fabSel=document.getElementById(prefix+'-fabric');
+    if(fabSel){fabSel.options.length=1;vtPopulateFormSelects(prefix);fabSel.value=name;vtFabricChange(prefix);const colSel=document.getElementById(prefix+'-color');if(colSel&&color){colSel.value=color;vtColorChange(prefix);}}
+  } else {
+    const nameEl=document.getElementById(prefix+'-new-brand-name');
+    const codeEl=document.getElementById(prefix+'-new-brand-code');
+    const name=nameEl?.value.trim(); const code=codeEl?.value.trim();
+    if(!name){if(nameEl)nameEl.style.borderColor='var(--red)';return;}
+    const newItem={id:Date.now(),name,code,color:'',mat:'',comment:''};
+    if(!DB.directory[dirGroup])DB.directory[dirGroup]=[];
+    DB.directory[dirGroup].push(newItem);
+    apiPost({action:'addDirItem',type:dirGroup,item:newItem});
+    if(nameEl){nameEl.value='';nameEl.style.borderColor='';}
+    if(codeEl)codeEl.value='';
+    toggleInlineMat(prefix+'-brand-form');
+    const bSel=document.getElementById(prefix+'-brand-code');
+    if(bSel){bSel.options.length=1;vtPopulateFormSelects(prefix);bSel.value=code||name;vtBrandChange(prefix);}
+  }
+}
+
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
+initTheme();
+
+// Google Sign-In ініціалізується після завантаження бібліотеки
+window.addEventListener('load', () => {
+  if (typeof google !== 'undefined' && google.accounts) {
+    initGoogleSignIn();
+  } else {
+    // Якщо бібліотека ще не завантажилась — чекаємо
+    const script = document.querySelector('script[src*="accounts.google.com"]');
+    if (script) {
+      script.addEventListener('load', initGoogleSignIn);
+    } else {
+      // Dev mode без auth
+      hideAuthOverlay();
+      loadFromSheets();
+    }
+  }
+});
+</script>
+</body>
+</html>
